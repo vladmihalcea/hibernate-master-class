@@ -1,44 +1,14 @@
-package com.vladmihalcea;
+package com.vladmihalcea.hibernate.masterclass.laboratory.testenv;
 
-import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.junit.Test;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
 import java.util.Properties;
 
-public class InternalDataSourceConnectionProviderTest {
+public class InternalDataSourceConnectionProviderTest extends AbstractConnectionProviderTest {
 
-    @Test
-    public void test() {
-        final SessionFactory sf = buildSessionFactory();
-        Session session = null;
-        Transaction txn = null;
-        try {
-            session = sf.openSession();
-            txn = session.beginTransaction();
-
-            SecurityId securityId = new SecurityId();
-            session.persist(securityId);
-
-            txn.commit();
-        } catch (RuntimeException e) {
-            if ( txn != null && txn.isActive() ) txn.rollback();
-            throw e;
-        } finally {
-            if (session != null) {
-                session.close();
-            }
-            sf.close();
-        }
-    }
-
-    private SessionFactory buildSessionFactory() {
+    protected SessionFactory newSessionFactory() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
@@ -61,12 +31,5 @@ public class InternalDataSourceConnectionProviderTest {
                                 .applySettings(properties)
                                 .build()
         );
-    }
-
-    @Entity(name = "SecurityId")
-    private static class SecurityId {
-        @Id
-        @GeneratedValue
-        Long id;
     }
 }
