@@ -12,7 +12,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import java.util.Properties;
 
-public class DriverConnectionProviderTest {
+public class InternalDataSourceConnectionProviderTest {
 
     @Test
     public void test() {
@@ -49,6 +49,9 @@ public class DriverConnectionProviderTest {
         properties.put("hibernate.connection.url", "jdbc:hsqldb:mem:test");
         properties.put("hibernate.connection.username", "sa");
         properties.put("hibernate.connection.password", "");
+        //c3p0 settings
+        properties.put("hibernate.c3p0.min_size", 1);
+        properties.put("hibernate.c3p0.max_size", 5);
 
         return new Configuration()
                 .addProperties(properties)

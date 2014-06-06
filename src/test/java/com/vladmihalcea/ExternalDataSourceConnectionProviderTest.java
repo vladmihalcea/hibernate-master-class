@@ -1,22 +1,27 @@
 package com.vladmihalcea;
 
+import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
+import net.ttddyy.dsproxy.support.ProxyDataSource;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
+import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.Test;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.sql.DataSource;
 import java.util.Properties;
 
-public class DriverConnectionProviderTest {
+public class ExternalDataSourceConnectionProviderTest {
 
     @Test
     public void test() {
-        final SessionFactory sf = buildSessionFactory();
+        final DataSource dataSource = newDataSource();
+        final SessionFactory sf = buildSessionFactory(dataSource);
         Session session = null;
         Transaction txn = null;
         try {
@@ -38,17 +43,24 @@ public class DriverConnectionProviderTest {
         }
     }
 
-    private SessionFactory buildSessionFactory() {
+    private ProxyDataSource newDataSource() {
+        JDBCDataSource actualDataSource = new JDBCDataSource();
+        actualDataSource.setUrl("jdbc:hsqldb:mem:test");
+        actualDataSource.setUser("sa");
+        actualDataSource.setPassword("");
+        ProxyDataSource proxyDataSource = new ProxyDataSource();
+        proxyDataSource.setDataSource(actualDataSource);
+        proxyDataSource.setListener(new SLF4JQueryLoggingListener());
+        return proxyDataSource;
+    }
+
+    private SessionFactory buildSessionFactory(DataSource dataSource) {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
         properties.put("hibernate.hbm2ddl.auto", "update");
-        properties.put("hibernate.show_sql", "true");
-        //driver settings
-        properties.put("hibernate.connection.driver_class", "org.hsqldb.jdbcDriver");
-        properties.put("hibernate.connection.url", "jdbc:hsqldb:mem:test");
-        properties.put("hibernate.connection.username", "sa");
-        properties.put("hibernate.connection.password", "");
+        //data source settings
+        properties.put("hibernate.connection.datasource", dataSource);
 
         return new Configuration()
                 .addProperties(properties)
