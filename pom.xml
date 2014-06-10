@@ -23,6 +23,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
@@ -65,6 +71,7 @@
     <properties>
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.1.2</logback.version>
+        <commons-lang.version>3.3.2</commons-lang.version>
         <hibernate.version>4.3.5.Final</hibernate.version>
         <datasource-proxy.version>1.2</datasource-proxy.version>
         <hsqldb.version>2.3.2</hsqldb.version>
