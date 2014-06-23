@@ -34,13 +34,7 @@ public abstract class AbstractTest {
     protected abstract Class<?>[] entities();
 
     private SessionFactory newSessionFactory() {
-        Properties properties = new Properties();
-        properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
-        //log settings
-        properties.put("hibernate.hbm2ddl.auto", "update");
-        //data source settings
-        properties.put("hibernate.connection.datasource", newDataSource());
-
+        Properties properties = getProperties();
         Configuration configuration = new Configuration().addProperties(properties);
         for(Class<?> entityClass : entities()) {
             configuration.addAnnotatedClass(entityClass);
@@ -50,6 +44,16 @@ public abstract class AbstractTest {
                         .applySettings(properties)
                         .build()
         );
+    }
+
+    protected Properties getProperties() {
+        Properties properties = new Properties();
+        properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
+        //log settings
+        properties.put("hibernate.hbm2ddl.auto", "update");
+        //data source settings
+        properties.put("hibernate.connection.datasource", newDataSource());
+        return properties;
     }
 
     private ProxyDataSource newDataSource() {
