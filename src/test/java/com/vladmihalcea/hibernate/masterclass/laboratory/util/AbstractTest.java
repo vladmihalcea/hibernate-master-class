@@ -10,10 +10,14 @@ import org.hibernate.cfg.Configuration;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 public abstract class AbstractTest {
+
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     protected static abstract class TransactionCallable<T> {
         public abstract T execute(Session session);
