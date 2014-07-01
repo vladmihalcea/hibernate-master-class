@@ -110,10 +110,6 @@ public class AssignedIdentifierTest extends AbstractTest {
     @Entity(name = "uuid2Identifier")
     public static class UUID2Identifier {
 
-        public UUID getUuid() {
-            return uuid;
-        }
-
         @GeneratedValue(generator = "uuid2")
         @GenericGenerator(name = "uuid2", strategy = "uuid2")
         @Column(columnDefinition = "BINARY(16)")
