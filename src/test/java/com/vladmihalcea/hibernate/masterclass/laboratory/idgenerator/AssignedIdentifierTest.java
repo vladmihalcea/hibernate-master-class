@@ -86,7 +86,6 @@ public class AssignedIdentifierTest extends AbstractTest {
 
         @Id
         @Column(columnDefinition = "BINARY(16)")
-        @Type(type = "org.hibernate.type.UUIDBinaryType")
         private UUID uuid;
 
         public AssignedIdentifier() {
