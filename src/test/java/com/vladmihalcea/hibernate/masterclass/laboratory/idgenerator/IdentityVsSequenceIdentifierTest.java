@@ -14,7 +14,8 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
     protected Class<?>[] entities() {
         return new Class<?>[] {
                 IdentityIdentifier.class,
-                SequenceIdentifier.class
+                SequenceIdentifier.class,
+                TableSequenceIdentifier.class
         };
     }
 
@@ -57,6 +58,21 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
         });
     }
 
+    @Test
+    public void testTableSequenceIdentifierGenerator() {
+        LOGGER.debug("testTableSequenceIdentifierGenerator");
+        doInTransaction(new TransactionCallable<Void>() {
+            @Override
+            public Void execute(Session session) {
+                for (int i = 0; i < 5; i++) {
+                    session.persist(new TableSequenceIdentifier());
+                }
+                session.flush();
+                return null;
+            }
+        });
+    }
+
     @Entity(name = "identityIdentifier")
     public static class IdentityIdentifier {
 
@@ -74,6 +90,17 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
                 @org.hibernate.annotations.Parameter(name = "allocationSize", value = "1"),
         })
         @GeneratedValue(generator = "sequence", strategy=GenerationType.SEQUENCE)
+        private Long id;
+    }
+
+    @Entity(name = "tableIdentifier")
+    public static class TableSequenceIdentifier {
+
+        @Id
+        @GenericGenerator(name = "table", strategy = "enhanced-table", parameters = {
+                @org.hibernate.annotations.Parameter(name = "table_name", value = "sequence_table")
+        })
+        @GeneratedValue(generator = "table", strategy=GenerationType.TABLE)
         private Long id;
     }
 }
