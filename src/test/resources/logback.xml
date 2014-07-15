@@ -21,10 +21,8 @@
     </appender>
 
     <logger name="org.springframework" level="warn"/>
-    <logger name="bitronix.tm" level="warn"/>
     <logger name="org.hibernate" level="warn"/>
-    <logger name="org.hibernate.SQL" level="debug"/>
-    <logger name="org.hibernate.util.JDBCExceptionReporter" level="error"/>
+    <logger name="org.hibernate.event.internal" level="debug"/>
 
     <logger name="com.vladmihalcea" level="debug"/>
     <root>
