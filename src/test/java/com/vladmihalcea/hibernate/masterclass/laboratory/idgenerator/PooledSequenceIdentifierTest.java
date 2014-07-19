@@ -20,13 +20,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
-public class PooledHiLoSequenceIdentifierTest extends AbstractTest {
+public class PooledSequenceIdentifierTest extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[] {
-                SequenceIdentifier.class,
+                PooledSequenceIdentifier.class,
         };
+    }
+
+    protected Object newEntityInstance() {
+        return new PooledSequenceIdentifier();
     }
 
     @Override
@@ -42,21 +46,22 @@ public class PooledHiLoSequenceIdentifierTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
-                for (int i = 0; i < 5; i++) {
-                    session.persist(new SequenceIdentifier());
+                for (int i = 0; i < 8; i++) {
+                    session.persist(newEntityInstance());
                 }
                 session.flush();
-                assertEquals(5, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
+                assertEquals(8, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
                 insertNewRow(session);
                 insertNewRow(session);
-                assertEquals(7, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
+                insertNewRow(session);
+                assertEquals(11, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
                 List<Number> ids = session.createSQLQuery("SELECT id FROM sequenceIdentifier").list();
                 for(Number id : ids) {
                     LOGGER.debug("Found id: {}", id);
                 }
-                /*for (int i = 0; i < 3; i++) {
-                    session.persist(new SequenceIdentifier());
-                }*/
+                for (int i = 0; i < 3; i++) {
+                    session.persist(newEntityInstance());
+                }
                 session.flush();
                 return null;
             }
@@ -64,14 +69,16 @@ public class PooledHiLoSequenceIdentifierTest extends AbstractTest {
     }
 
     @Entity(name = "sequenceIdentifier")
-    public static class SequenceIdentifier {
+    public static class PooledSequenceIdentifier {
 
         @Id
         @GenericGenerator(name = "sampleGenerator", strategy = "enhanced-sequence",
                 parameters = {
-                        @org.hibernate.annotations.Parameter(name = "optimizer", value = "pooled"),
+                        @org.hibernate.annotations.Parameter(name = "optimizer",
+                                value = "pooled"
+                        ),
                         @org.hibernate.annotations.Parameter(name = "initial_value", value = "1"),
-                        @org.hibernate.annotations.Parameter(name = "increment_size", value = "2")
+                        @org.hibernate.annotations.Parameter(name = "increment_size", value = "5")
                 }
         )
         @GeneratedValue(strategy = GenerationType.TABLE, generator = "sampleGenerator")
