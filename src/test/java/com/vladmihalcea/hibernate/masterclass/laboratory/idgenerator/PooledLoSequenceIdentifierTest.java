@@ -1,31 +1,37 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.idgenerator;
 
 import org.hibernate.annotations.GenericGenerator;
+import org.junit.Test;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-public class PooledLoSequenceIdentifierTest extends PooledSequenceIdentifierTest {
+public class PooledLoSequenceIdentifierTest extends AbstractPooledSequenceIdentifierTest {
 
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[] {
-                CollisionFreeSequenceIdentifier.class
+                PooledLoSequenceIdentifier.class
         };
     }
 
     @Override
     protected Object newEntityInstance() {
-        return new CollisionFreeSequenceIdentifier();
+        return new PooledLoSequenceIdentifier();
+    }
+
+    @Test
+    public void testPooledOptimizerSuccess() {
+        insertSequences();
     }
 
     @Entity(name = "sequenceIdentifier")
-     public static class CollisionFreeSequenceIdentifier {
+     public static class PooledLoSequenceIdentifier {
 
         @Id
-        @GenericGenerator(name = "sampleGenerator", strategy = "enhanced-sequence",
+        @GenericGenerator(name = "sequenceGenerator", strategy = "enhanced-sequence",
                 parameters = {
                         @org.hibernate.annotations.Parameter(name = "optimizer",
                                 value = "pooled-lo"
@@ -34,7 +40,7 @@ public class PooledLoSequenceIdentifierTest extends PooledSequenceIdentifierTest
                         @org.hibernate.annotations.Parameter(name = "increment_size", value = "5")
                 }
         )
-        @GeneratedValue(strategy = GenerationType.TABLE, generator = "sampleGenerator")
+        @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequenceGenerator")
         private Long id;
     }
 }
