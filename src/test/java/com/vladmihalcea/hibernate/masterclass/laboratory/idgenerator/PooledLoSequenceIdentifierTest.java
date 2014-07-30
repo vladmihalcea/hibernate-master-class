@@ -28,7 +28,7 @@ public class PooledLoSequenceIdentifierTest extends AbstractPooledSequenceIdenti
     }
 
     @Entity(name = "sequenceIdentifier")
-     public static class PooledLoSequenceIdentifier {
+    public static class PooledLoSequenceIdentifier {
 
         @Id
         @GenericGenerator(name = "sequenceGenerator", strategy = "enhanced-sequence",
