@@ -1,4 +1,4 @@
-package com.vladmihalcea.hibernate.masterclass.laboratory.entityidentifier;
+package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 
 import javax.persistence.*;
 
@@ -9,13 +9,18 @@ import javax.persistence.*;
  */
 @Entity
 @Table(name = "product")
+@NamedNativeQueries(
+        @NamedNativeQuery(name = "product_ids", query = "select id from product")
+)
 public class Product {
 
     @Id
-    @GeneratedValue
-    private Long id;
+    @GeneratedValue(generator = "uuid2")
+    private String id;
 
     private String name;
+
+    private String color;
 
     public Product() {
     }
@@ -24,7 +29,7 @@ public class Product {
         this.name = name;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -34,5 +39,13 @@ public class Product {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

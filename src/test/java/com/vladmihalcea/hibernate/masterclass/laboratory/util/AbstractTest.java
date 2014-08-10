@@ -37,11 +37,21 @@ public abstract class AbstractTest {
 
     protected abstract Class<?>[] entities();
 
+    protected String[] packages() {
+        return null;
+    }
+
     private SessionFactory newSessionFactory() {
         Properties properties = getProperties();
         Configuration configuration = new Configuration().addProperties(properties);
         for(Class<?> entityClass : entities()) {
             configuration.addAnnotatedClass(entityClass);
+        }
+        String[] packages = packages();
+        if(packages != null) {
+            for(String scannedPackage : packages) {
+                configuration.addPackage(scannedPackage);
+            }
         }
         return configuration.buildSessionFactory(
                 new StandardServiceRegistryBuilder()
@@ -54,7 +64,7 @@ public abstract class AbstractTest {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
-        properties.put("hibernate.hbm2ddl.auto", "update");
+        properties.put("hibernate.hbm2ddl.auto", "create-drop");
         //data source settings
         properties.put("hibernate.connection.datasource", newDataSource());
         return properties;
