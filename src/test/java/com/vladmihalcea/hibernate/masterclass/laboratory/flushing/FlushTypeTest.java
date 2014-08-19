@@ -129,6 +129,8 @@ public class FlushTypeTest extends AbstractTest {
             }
         });
     }
+    
+
 
     @Test
     public void testAutoFlushSQLNamedQuery() {

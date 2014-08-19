@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 
 import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
+import org.hibernate.Interceptor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -41,6 +42,10 @@ public abstract class AbstractTest {
         return null;
     }
 
+    protected Interceptor interceptor() {
+        return null;
+    }
+
     private SessionFactory newSessionFactory() {
         Properties properties = getProperties();
         Configuration configuration = new Configuration().addProperties(properties);
@@ -52,6 +57,10 @@ public abstract class AbstractTest {
             for(String scannedPackage : packages) {
                 configuration.addPackage(scannedPackage);
             }
+        }
+        Interceptor interceptor = interceptor();
+        if(interceptor != null) {
+            configuration.setInterceptor(interceptor);
         }
         return configuration.buildSessionFactory(
                 new StandardServiceRegistryBuilder()
