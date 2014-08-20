@@ -1,12 +1,7 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 
 import javax.persistence.*;
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Date;
 
 /**
  * Order - Order
@@ -15,24 +10,7 @@ import java.util.*;
  */
 @Entity
 @Table(name = "ORDER_LINE")
-public class OrderLine implements DirtyAware {
-
-    public static final Map<String, String> SETTER_TO_PROPERTY_MAP = new HashMap<String, String>();
-
-    static {
-        try {
-            BeanInfo beanInfo = Introspector.getBeanInfo(OrderLine.class);
-            PropertyDescriptor[] descriptors = beanInfo.getPropertyDescriptors();
-            for (PropertyDescriptor descriptor : descriptors) {
-                Method setter = descriptor.getWriteMethod();
-                if (setter != null) {
-                    SETTER_TO_PROPERTY_MAP.put(setter.getName(), descriptor.getName());
-                }
-            }
-        } catch (IntrospectionException e) {
-            throw new IllegalStateException(e);
-        }
-    }
+public class OrderLine extends SelfDirtyCheckingEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -43,13 +21,6 @@ public class OrderLine implements DirtyAware {
     private String orderedBy;
 
     private Date orderedOn;
-
-    @Transient
-    private Set<String> dirtyProperties = new LinkedHashSet<String>();
-
-    public OrderLine() {
-
-    }
 
     public Long getId() {
         return id;
@@ -80,21 +51,5 @@ public class OrderLine implements DirtyAware {
     public void setOrderedOn(Date orderedOn) {
         this.orderedOn = orderedOn;
         markDirtyProperty();
-
-    }
-
-    @Override
-    public Set<String> getDirtyProperties() {
-        return dirtyProperties;
-    }
-
-    @Override
-    public void clearDirtyProperties() {
-        dirtyProperties.clear();
-    }
-
-    private void markDirtyProperty() {
-        String methodName = Thread.currentThread().getStackTrace()[2].getMethodName();
-        dirtyProperties.add(SETTER_TO_PROPERTY_MAP.get(methodName));
     }
 }

@@ -21,8 +21,7 @@ public class AutoDirtyCheckingTest extends AbstractTest {
     }
 
     @Test
-    public void testAutoFlushHQL() {
-
+    public void testDirtyChecking() {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
@@ -33,6 +32,7 @@ public class AutoDirtyCheckingTest extends AbstractTest {
                 orderLine.setOrderedBy("Vlad");
                 orderLine.setOrderedOn(new Date());
                 session.flush();
+                orderLine.setOrderedBy("Alex");
                 return null;
             }
         });

@@ -3,6 +3,8 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 import org.hibernate.EmptyInterceptor;
 import org.hibernate.Interceptor;
 import org.hibernate.type.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -16,6 +18,8 @@ import java.util.Set;
  */
 public class InterceptorDirtyCheckingTest extends AutoDirtyCheckingTest {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(InterceptorDirtyCheckingTest.class);
+
     public static class DirtyCheckingInterceptor extends EmptyInterceptor {
         @Override
         public int[] findDirty(Object entity, Serializable id, Object[] currentState, Object[] previousState, String[] propertyNames, Type[] types) {
@@ -26,8 +30,10 @@ public class InterceptorDirtyCheckingTest extends AutoDirtyCheckingTest {
                 List<String> propertyNamesList = Arrays.asList(propertyNames);
                 int i = 0;
                 for(String dirtyProperty : dirtyProperties) {
+                    LOGGER.info("The {} property is dirty", dirtyProperty);
                     dirtyPropertiesIndices[i++] = propertyNamesList.indexOf(dirtyProperty);
                 }
+                dirtyAware.clearDirtyProperties();
                 return dirtyPropertiesIndices;
             }
             return super.findDirty(entity, id, currentState, previousState, propertyNames, types);
