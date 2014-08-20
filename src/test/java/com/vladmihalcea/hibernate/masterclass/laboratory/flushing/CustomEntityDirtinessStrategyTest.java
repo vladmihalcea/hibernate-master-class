@@ -7,7 +7,7 @@ import org.hibernate.persister.entity.EntityPersister;
 import java.util.Properties;
 
 /**
- * InterceptorDirtyCheckingTest - Test to check interceptor dirty checking capabilities
+ * InterceptorDirtyCheckingTest - Test to check CustomEntityDirtinessStrategy dirty checking capabilities
  *
  * @author Vlad Mihalcea
  */

@@ -72,7 +72,7 @@
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <commons-lang.version>3.3.2</commons-lang.version>
-        <hibernate.version>4.3.5.Final</hibernate.version>
+        <hibernate.version>4.3.6.Final</hibernate.version>
         <datasource-proxy.version>1.2.1</datasource-proxy.version>
         <hsqldb.version>2.3.2</hsqldb.version>
         <junit.version>4.11</junit.version>
