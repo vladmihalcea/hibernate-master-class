@@ -1,6 +1,8 @@
-package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
+package com.vladmihalcea.hibernate.masterclass.laboratory.jpa;
 
+import com.vladmihalcea.hibernate.masterclass.laboratory.flushing.OrderLine;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractJPATest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.persistence.EntityManager;
@@ -12,6 +14,7 @@ import java.util.Properties;
  *
  * @author Vlad Mihalcea
  */
+@Ignore
 public class RuntimeProxyDirtyCheckingTest extends AbstractJPATest {
 
     @Override

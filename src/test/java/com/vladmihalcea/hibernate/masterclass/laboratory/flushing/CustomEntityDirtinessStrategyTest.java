@@ -3,6 +3,8 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 import org.hibernate.CustomEntityDirtinessStrategy;
 import org.hibernate.Session;
 import org.hibernate.persister.entity.EntityPersister;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
@@ -12,6 +14,8 @@ import java.util.Properties;
  * @author Vlad Mihalcea
  */
 public class CustomEntityDirtinessStrategyTest extends AutoDirtyCheckingTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CustomEntityDirtinessStrategyTest.class);
 
     public static class EntityDirtinessStrategy implements CustomEntityDirtinessStrategy {
 
@@ -37,7 +41,12 @@ public class CustomEntityDirtinessStrategyTest extends AutoDirtyCheckingTest {
                     new AttributeChecker() {
                         @Override
                         public boolean isDirty(AttributeInformation attributeInformation) {
-                            return dirtyAware.getDirtyProperties().contains( attributeInformation.getName() );
+                            String propertyName = attributeInformation.getName();
+                            boolean dirty = dirtyAware.getDirtyProperties().contains( propertyName );
+                            if (dirty) {
+                                LOGGER.info("The {} property is dirty", propertyName);
+                            }
+                            return dirty;
                         }
                     }
             );
