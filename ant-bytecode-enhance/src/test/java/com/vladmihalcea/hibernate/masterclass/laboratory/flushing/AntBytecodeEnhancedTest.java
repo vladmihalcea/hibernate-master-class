@@ -1,16 +1,18 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
 import org.junit.Test;
 
 import java.util.Date;
 
 /**
- * BytecodeEnhancedTest - Test to check auto dirty checking capabilities
+ * AntBytecodeEnhancedTest - Test to check auto dirty checking capabilities
  *
  * @author Vlad Mihalcea
  */
-public class BytecodeEnhancedTest extends AutoDirtyCheckingTest {
+public class AntBytecodeEnhancedTest
+        extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
