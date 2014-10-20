@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
+import org.junit.Test;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +24,7 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
         };
     }
 
-    @org.junit.Test
+    @Test
     public void testOptimisticLocking() {
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -31,8 +32,8 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
             @Override
             public Void execute(Session session) {
                 Product product = new Product();
-                product.setId(123L);
-                product.setQuantity(55L);
+                product.setId(1L);
+                product.setQuantity(7L);
                 session.persist(product);
                 return null;
             }
@@ -41,7 +42,7 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
-                final Product product = (Product) session.get(Product.class, 123L);
+                final Product product = (Product) session.get(Product.class, 1L);
                 try {
                     executorService.submit(new Callable<Void>() {
                         @Override
@@ -49,17 +50,17 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
                             return doInTransaction(new TransactionCallable<Void>() {
                                 @Override
                                 public Void execute(Session _session) {
-                                    Product otherThreadProduct = (Product) _session.get(Product.class, 123L);
+                                    Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
                                     assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.setQuantity(66L);
+                                    otherThreadProduct.setQuantity(6L);
                                     return null;
                                 }
                             });
                         }
                     }).get();
-                    //Product reloadedProduct = (Product) session.createQuery("from Product").list().get(0);
-                    //assertEquals(66L, reloadedProduct.getQuantity());
-                    assertEquals(66L, ((Number) session.createSQLQuery("select quantity from Product where id = 123").uniqueResult()).longValue());
+                    Product reloadedProduct = (Product) session.createQuery("from Product").uniqueResult();
+                    assertEquals(7L, reloadedProduct.getQuantity());
+                    assertEquals(6L, ((Number) session.createSQLQuery("select quantity from Product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
                 } catch (Exception e) {
                     fail(e.getMessage());
                 }
