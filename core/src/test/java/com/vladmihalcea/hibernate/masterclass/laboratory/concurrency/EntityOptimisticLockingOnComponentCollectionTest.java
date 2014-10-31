@@ -3,6 +3,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
+import org.hibernate.annotations.Parent;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -61,13 +62,29 @@ public class EntityOptimisticLockingOnComponentCollectionTest extends AbstractTe
         public final int getVersion() {
             return version;
         }
+
+        public void addComment(Comment comment) {
+            comment.setPost(this);
+            comments.add(comment);
+        }
     }
 
     @Embeddable
     public static class Comment {
 
+        @Parent
+        private Post post;
+
         @Column(name = "review")
         private String review;
+
+        public Post getPost() {
+            return post;
+        }
+
+        public void setPost(Post post) {
+            this.post = post;
+        }
 
         public String getReview() {
             return review;
@@ -117,7 +134,7 @@ public class EntityOptimisticLockingOnComponentCollectionTest extends AbstractTe
                                     assertEquals(0L, otherThreadPost.getVersion());
                                     Comment comment = new Comment();
                                     comment.setReview("Good post!");
-                                    otherThreadPost.getComments().add(comment);
+                                    otherThreadPost.addComment(comment);
                                     _session.flush();
                                     assertEquals(1L, otherThreadPost.getVersion());
                                     return null;

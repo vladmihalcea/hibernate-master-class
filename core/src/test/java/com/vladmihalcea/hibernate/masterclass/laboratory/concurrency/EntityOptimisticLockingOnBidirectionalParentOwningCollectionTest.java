@@ -141,7 +141,7 @@ public class EntityOptimisticLockingOnBidirectionalParentOwningCollectionTest ex
                                     assertEquals(0L, otherThreadPost.getVersion());
                                     Comment comment = new Comment();
                                     comment.setReview("Good post!");
-                                    otherThreadPost.getComments().add(comment);
+                                    otherThreadPost.addComment(comment);
                                     _session.flush();
                                     assertEquals(1L, otherThreadPost.getVersion());
                                     return null;
