@@ -1,29 +1,25 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
 import org.junit.Test;
 
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 /**
  * EntityOptimisticLockingOnUnidirectionalCollectionTest - Test to check optimistic locking on unidirectional collections
  *
  * @author Vlad Mihalcea
  */
-public class EntityOptimisticLockingOnUnidirectionalCollectionTest extends AbstractTest {
+public class EntityOptimisticLockingOnUnidirectionalCollectionTest
+        extends AbstractEntityOptimisticLockingCollectionTest
+        <EntityOptimisticLockingOnUnidirectionalCollectionTest.Post, EntityOptimisticLockingOnUnidirectionalCollectionTest.Comment> {
 
     @Entity(name = "post")
-    public static class Post {
+    public static class Post implements AbstractEntityOptimisticLockingCollectionTest.IPost<Comment> {
 
         @Id
         private Long id;
@@ -60,10 +56,14 @@ public class EntityOptimisticLockingOnUnidirectionalCollectionTest extends Abstr
         public final int getVersion() {
             return version;
         }
+
+        public void addComment(Comment comment) {
+            comments.add(comment);
+        }
     }
 
     @Entity(name = "comment")
-    public static class Comment {
+    public static class Comment implements AbstractEntityOptimisticLockingCollectionTest.IComment<Post> {
 
         @Id
         @GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -84,6 +84,10 @@ public class EntityOptimisticLockingOnUnidirectionalCollectionTest extends Abstr
         }
     }
 
+    public EntityOptimisticLockingOnUnidirectionalCollectionTest() {
+        super(Post.class, Comment.class);
+    }
+
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[] {
@@ -95,55 +99,7 @@ public class EntityOptimisticLockingOnUnidirectionalCollectionTest extends Abstr
     @Test
     public void testOptimisticLocking() {
         try {
-            final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(Session session) {
-                    Post post = new Post();
-                    post.setId(1L);
-                    post.setName("Hibernate training");
-                    session.persist(post);
-                    return null;
-                }
-            });
-
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(final Session session) {
-                    final Post post = (Post)
-                            session.get(Post.class, 1L);
-                    try {
-                        executorService.submit(new Callable<Void>() {
-                            @Override
-                            public Void call() throws Exception {
-                                return doInTransaction(new TransactionCallable<Void>() {
-                                    @Override
-                                    public Void execute(Session _session) {
-                                        Post otherThreadPost = (Post) _session.get(Post.class, 1L);
-                                        assertNotSame(post, otherThreadPost);
-                                        assertEquals(0L, otherThreadPost.getVersion());
-                                        Comment comment = new Comment();
-                                        comment.setReview("Good post!");
-                                        otherThreadPost.getComments().add(comment);
-                                        _session.flush();
-                                        assertEquals(1L, otherThreadPost.getVersion());
-                                        return null;
-                                    }
-                                });
-                            }
-                        }).get();
-                    } catch (InterruptedException e) {
-                        fail(e.getMessage());
-                    } catch (ExecutionException e) {
-                        fail(e.getMessage());
-                    }
-                    post.setName("Hibernate Master Class");
-                    session.flush();
-                    fail("Should throw optimistic locking exception");
-                    return null;
-                }
-            });
+            simulateConcurrentTransactions(true);
         } catch (Exception e) {
             LOGGER.info("Expected", e);
             assertTrue(e instanceof StaleObjectStateException);
