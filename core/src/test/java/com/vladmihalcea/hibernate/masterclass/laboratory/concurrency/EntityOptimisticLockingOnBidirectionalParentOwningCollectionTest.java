@@ -109,56 +109,61 @@ public class EntityOptimisticLockingOnBidirectionalParentOwningCollectionTest ex
         };
     }
 
-    @Test(expected = StaleObjectStateException.class)
+    @Test
     public void testOptimisticLocking() {
-        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+            final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Post post = new Post();
-                post.setId(1L);
-                post.setName("Hibernate training");
-                session.persist(post);
-                return null;
-            }
-        });
-
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(final Session session) {
-                final Post post = (Post)
-                        session.get(Post.class, 1L);
-                try {
-                    executorService.submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            return doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    Post otherThreadPost = (Post) _session.get(Post.class, 1L);
-                                    assertNotSame(post, otherThreadPost);
-                                    assertEquals(0L, otherThreadPost.getVersion());
-                                    Comment comment = new Comment();
-                                    comment.setReview("Good post!");
-                                    otherThreadPost.addComment(comment);
-                                    _session.flush();
-                                    assertEquals(1L, otherThreadPost.getVersion());
-                                    return null;
-                                }
-                            });
-                        }
-                    }).get();
-                } catch (InterruptedException e) {
-                    fail(e.getMessage());
-                } catch (ExecutionException e) {
-                    fail(e.getMessage());
+            doInTransaction(new TransactionCallable<Void>() {
+                @Override
+                public Void execute(Session session) {
+                    Post post = new Post();
+                    post.setId(1L);
+                    post.setName("Hibernate training");
+                    session.persist(post);
+                    return null;
                 }
-                post.setName("Hibernate Master Class");
-                session.flush();
-                fail("Should throw optimistic locking exception");
-                return null;
-            }
-        });
+            });
+
+            doInTransaction(new TransactionCallable<Void>() {
+                @Override
+                public Void execute(final Session session) {
+                    final Post post = (Post)
+                            session.get(Post.class, 1L);
+                    try {
+                        executorService.submit(new Callable<Void>() {
+                            @Override
+                            public Void call() throws Exception {
+                                return doInTransaction(new TransactionCallable<Void>() {
+                                    @Override
+                                    public Void execute(Session _session) {
+                                        Post otherThreadPost = (Post) _session.get(Post.class, 1L);
+                                        assertNotSame(post, otherThreadPost);
+                                        assertEquals(0L, otherThreadPost.getVersion());
+                                        Comment comment = new Comment();
+                                        comment.setReview("Good post!");
+                                        otherThreadPost.addComment(comment);
+                                        _session.flush();
+                                        assertEquals(1L, otherThreadPost.getVersion());
+                                        return null;
+                                    }
+                                });
+                            }
+                        }).get();
+                    } catch (InterruptedException e) {
+                        fail(e.getMessage());
+                    } catch (ExecutionException e) {
+                        fail(e.getMessage());
+                    }
+                    post.setName("Hibernate Master Class");
+                    session.flush();
+                    fail("Should throw optimistic locking exception");
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.info("Expected", e);
+            assertTrue(e instanceof StaleObjectStateException);
+        }
     }
 }
