@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import static org.junit.Assert.*;
 
 /**
- * EntityOptimisticLockingOnUnidirectionalCollectionTest - Test to check optimistic locking on unidirectional collections
+ * EntityOptimisticLockingOnBidirectionalParentOwningCollectionTest - Test to check optimistic locking on bidirectional parent owning collections
  *
  * @author Vlad Mihalcea
  */

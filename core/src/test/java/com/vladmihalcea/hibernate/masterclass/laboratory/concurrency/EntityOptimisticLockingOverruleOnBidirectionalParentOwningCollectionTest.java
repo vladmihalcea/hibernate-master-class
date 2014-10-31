@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
+import org.hibernate.annotations.OptimisticLock;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -15,11 +16,11 @@ import java.util.concurrent.Executors;
 import static org.junit.Assert.*;
 
 /**
- * EntityOptimisticLockingOnBidirectionalChildOwningCollectionTest - Test to check optimistic locking on bidirectional child owning collections
+ * EntityOptimisticLockingOnBidirectionalParentOwningCollectionTest - Test to check optimistic locking overruling on bidirectional parent owning collections
  *
  * @author Vlad Mihalcea
  */
-public class EntityOptimisticLockingOnBidirectionalChildOwningCollectionTest extends AbstractTest {
+public class EntityOptimisticLockingOverruleOnBidirectionalParentOwningCollectionTest extends AbstractTest {
 
     @Entity(name = "post")
     public static class Post {
@@ -29,7 +30,8 @@ public class EntityOptimisticLockingOnBidirectionalChildOwningCollectionTest ext
 
         private String name;
 
-        @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "post")
+        @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+        @OptimisticLock(excluded = true)
         private List<Comment> comments = new ArrayList<Comment>();
 
         @Version
@@ -75,6 +77,7 @@ public class EntityOptimisticLockingOnBidirectionalChildOwningCollectionTest ext
         private String review;
 
         @ManyToOne
+        @JoinColumn(name = "post_id", insertable = false, updatable = false)
         private Post post;
 
         public Long getId() {
