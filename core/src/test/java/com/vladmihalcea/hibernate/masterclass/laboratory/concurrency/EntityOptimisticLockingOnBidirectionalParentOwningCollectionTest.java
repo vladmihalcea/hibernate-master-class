@@ -76,7 +76,7 @@ public class EntityOptimisticLockingOnBidirectionalParentOwningCollectionTest ex
         private String review;
 
         @ManyToOne
-        @JoinColumn(name = "post_id")
+        @JoinColumn(name = "post_id", insertable = false, updatable = false)
         private Post post;
 
         public Long getId() {
