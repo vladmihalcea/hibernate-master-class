@@ -4,6 +4,9 @@ import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
 import org.junit.Test;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,7 +29,6 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
 
     @Test
     public void testOptimisticLocking() {
-        final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         doInTransaction(new TransactionCallable<Void>() {
             @Override
@@ -44,7 +46,7 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
             public Void execute(Session session) {
                 final Product product = (Product) session.get(Product.class, 1L);
                 try {
-                    executorService.submit(new Callable<Void>() {
+                    executeAndWait(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {
@@ -57,15 +59,59 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
                                 }
                             });
                         }
-                    }).get();
-                    Product reloadedProduct = (Product) session.createQuery("from Product").uniqueResult();
+                    });
+                    Product reloadedProduct = (Product) session.createQuery("from product").uniqueResult();
                     assertEquals(7L, reloadedProduct.getQuantity());
-                    assertEquals(6L, ((Number) session.createSQLQuery("select quantity from Product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
+                    assertEquals(6L, ((Number) session.createSQLQuery("select quantity from product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
                 } catch (Exception e) {
                     fail(e.getMessage());
                 }
                 return null;
             }
         });
+    }
+
+    /**
+     * Product - Product
+     *
+     * @author Vlad Mihalcea
+     */
+    @Entity(name = "product")
+    @Table(name = "product")
+    public static class Product {
+
+        @Id
+        private Long id;
+
+        private long quantity;
+
+        private int likes;
+
+        public Product() {
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public long getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(long quantity) {
+            this.quantity = quantity;
+        }
+
+        public int getLikes() {
+            return likes;
+        }
+
+        public int incrementLikes() {
+            return ++likes;
+        }
     }
 }

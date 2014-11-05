@@ -74,7 +74,7 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
                 final P post = (P)
                         session.get(postClass, 1L);
                 try {
-                    executorService.submit(new Callable<Void>() {
+                    executeAndWait(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {
@@ -101,7 +101,7 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
                                 }
                             });
                         }
-                    }).get();
+                    });
                 } catch (Exception e) {
                     throw new IllegalArgumentException(e);
                 }

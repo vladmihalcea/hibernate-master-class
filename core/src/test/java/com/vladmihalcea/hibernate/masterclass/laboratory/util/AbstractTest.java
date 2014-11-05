@@ -14,9 +14,15 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.*;
 
 public abstract class AbstractTest {
+
+    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
@@ -109,5 +115,22 @@ public abstract class AbstractTest {
             }
         }
         return result;
+    }
+
+    protected  <T> void executeAndWait(Callable<T> callable) {
+        executeAndWait(Collections.singleton(callable));
+    }
+
+    protected  <T> void executeAndWait(Collection<Callable<T>> callables) {
+        try {
+            List<Future<T>> futures = executorService.invokeAll(callables);
+            for (Future<T> future : futures) {
+                future.get();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
