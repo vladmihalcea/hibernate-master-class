@@ -7,29 +7,98 @@ import org.junit.Test;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.util.concurrent.Callable;
-
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.fail;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * EntityOptimisticLockingHighUpdateRateSingleEntityTest - Test to check optimistic checking on a single entity being updated by many threads
  *
  * @author Vlad Mihalcea
  */
-public class EntityOptimisticLockingHighUpdateRateMultipleEntitiesTest extends AbstractTest {
+public class OptimisticLockingOneRootEntityMultipleVersionsTest extends AbstractTest {
 
-    @Override
-    protected Class<?>[] entities() {
-        return new Class<?>[]{
-                Product.class,
-                ProductStock.class,
-                ProductLiking.class
-        };
+    private final CountDownLatch loadProductsLatch = new CountDownLatch(3);
+    private final CountDownLatch aliceLatch = new CountDownLatch(1);
+
+    public class AliceTransaction implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                doInTransaction(new TransactionCallable<Void>() {
+                    @Override
+                    public Void execute(Session session) {
+                        try {
+                            Product product = (Product) session.get(Product.class, 1L);
+                            loadProductsLatch.countDown();
+                            loadProductsLatch.await();
+                            product.setQuantity(6L);
+                            return null;
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Alice: Optimistic locking failure", expected);
+            }
+            aliceLatch.countDown();
+        }
+    }
+
+    public class BobTransaction implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                doInTransaction(new TransactionCallable<Void>() {
+                    @Override
+                    public Void execute(Session session) {
+                        try {
+                            Product product = (Product) session.get(Product.class, 1L);
+                            loadProductsLatch.countDown();
+                            loadProductsLatch.await();
+                            aliceLatch.await();
+                            product.incrementLikes();
+                            return null;
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Bob: Optimistic locking failure", expected);
+            }
+        }
+    }
+
+    public class VladTransaction implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                doInTransaction(new TransactionCallable<Void>() {
+                    @Override
+                    public Void execute(Session session) {
+                        try {
+                            Product product = (Product) session.get(Product.class, 1L);
+                            loadProductsLatch.countDown();
+                            loadProductsLatch.await();
+                            aliceLatch.await();
+                            product.setDescription("Plasma HDTV");
+                            return null;
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Bob: Optimistic locking failure", expected);
+            }
+        }
     }
 
     @Test
-    public void testOptimisticLocking() {
+    public void testOptimisticLocking() throws InterruptedException {
 
         doInTransaction(new TransactionCallable<Void>() {
             @Override
@@ -45,35 +114,26 @@ public class EntityOptimisticLockingHighUpdateRateMultipleEntitiesTest extends A
             }
         });
 
-        try {
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(Session session) {
-                    final Product product = (Product) session.get(Product.class, 1L);
-                    executeAndWait(
-                            new Callable<Void>() {
-                                @Override
-                                public Void call() throws Exception {
-                                    return doInTransaction(new TransactionCallable<Void>() {
-                                        @Override
-                                        public Void execute(Session _session) {
-                                            Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
-                                            assertNotSame(product, otherThreadProduct);
-                                            otherThreadProduct.setQuantity(6L);
-                                            return null;
-                                        }
-                                    });
-                                }
-                            }
-                    );
-                    product.incrementLikes();
-                    session.flush();
-                    return null;
-                }
-            });
-        } catch (StaleObjectStateException e) {
-            fail(e.getMessage());
-        }
+        Thread alice = new Thread(new AliceTransaction());
+        Thread bob = new Thread(new BobTransaction());
+        Thread vlad = new Thread(new VladTransaction());
+
+        alice.start();
+        bob.start();
+        vlad.start();
+
+        alice.join();
+        bob.join();
+        vlad.join();
+    }
+
+    @Override
+    protected Class<?>[] entities() {
+        return new Class<?>[]{
+                Product.class,
+                ProductStock.class,
+                ProductLiking.class
+        };
     }
 
     /**
