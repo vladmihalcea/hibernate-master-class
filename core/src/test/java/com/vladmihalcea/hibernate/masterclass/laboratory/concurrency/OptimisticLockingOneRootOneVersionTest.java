@@ -92,7 +92,7 @@ public class OptimisticLockingOneRootOneVersionTest extends AbstractTest {
                     }
                 });
             } catch (StaleObjectStateException expected) {
-                LOGGER.info("Bob: Optimistic locking failure", expected);
+                LOGGER.info("Vlad: Optimistic locking failure", expected);
             }
         }
     }
