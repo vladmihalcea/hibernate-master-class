@@ -6,6 +6,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OptimisticLockType;
 import org.hibernate.annotations.OptimisticLocking;
 import org.hibernate.annotations.SelectBeforeUpdate;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.persistence.Column;
@@ -14,18 +15,21 @@ import javax.persistence.Id;
 import java.math.BigDecimal;
 
 /**
- * OptimisticLockingDirtyVersioningTest - Test to check optimistic checking using the dirty properties instead of a synthetic version column
+ * OptimisticLockingVersionlessTest - Test to check optimistic checking using the dirty properties instead of a synthetic version column
  *
  * @author Vlad Mihalcea
  */
-public class OptimisticLockingDirtyVersioningTest extends AbstractTest {
+public class OptimisticLockingVersionlessTest extends AbstractTest {
 
-    @Test
-    public void testOptimisticLocking() {
+    private Product product;
 
-        final Product product = doInTransaction(new TransactionCallable<Product>() {
+    @Before
+    public void init() {
+        super.init();
+        product = doInTransaction(new TransactionCallable<Product>() {
             @Override
             public Product execute(Session session) {
+                session.createQuery("delete from Product").executeUpdate();
                 Product product = new Product();
                 product.setId(1L);
                 product.setName("TV");
@@ -33,10 +37,13 @@ public class OptimisticLockingDirtyVersioningTest extends AbstractTest {
                 product.setPrice(BigDecimal.valueOf(199.99));
                 product.setQuantity(7L);
                 session.persist(product);
-                product.setQuantity(6L);
                 return product;
             }
         });
+    }
+
+    @Test
+    public void testVersionlessOptimisticLockingWhenMerging() {
 
         doInTransaction(new TransactionCallable<Object>() {
             @Override
@@ -52,12 +59,16 @@ public class OptimisticLockingDirtyVersioningTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Object>() {
             @Override
             public Object execute(Session session) {
-                LOGGER.info("Merging product");
+                LOGGER.info("Merging product, price to be saved is {}", product.getPrice());
                 session.merge(product);
                 session.flush();
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testVersionlessOptimisticLockingWhenReattaching() {
 
         doInTransaction(new TransactionCallable<Object>() {
             @Override
@@ -73,7 +84,7 @@ public class OptimisticLockingDirtyVersioningTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Object>() {
             @Override
             public Object execute(Session session) {
-                LOGGER.info("Reattaching product");
+                LOGGER.info("Reattaching product, price to be saved is {}", product.getPrice());
                 session.saveOrUpdate(product);
                 session.flush();
                 return null;
@@ -88,7 +99,7 @@ public class OptimisticLockingDirtyVersioningTest extends AbstractTest {
         };
     }
 
-    @Entity(name = "DirtyPropertiesLockingProduct")
+    @Entity(name = "Product")
     @OptimisticLocking(type = OptimisticLockType.DIRTY)
     @DynamicUpdate
     @SelectBeforeUpdate(value = false)
