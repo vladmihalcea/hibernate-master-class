@@ -154,6 +154,9 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
 
         private long quantity;
 
+        @Version
+        private int version;
+
         public Long getId() {
             return id;
         }
@@ -192,6 +195,9 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
         private Product product;
 
         private int likes;
+
+        @Version
+        private int version;
 
         public Long getId() {
             return id;
