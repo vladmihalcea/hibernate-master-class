@@ -1,13 +1,23 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
+import org.hamcrest.core.IsInstanceOf;
 import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.util.concurrent.CountDownLatch;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+
 
 /**
  * EntityOptimisticLockingHighUpdateRateSingleEntityTest - Test to check optimistic checking on a single entity being updated by many threads
@@ -15,94 +25,14 @@ import java.util.concurrent.CountDownLatch;
  * @author Vlad Mihalcea
  */
 public class OptimisticLockingOneRootEntityMultipleVersionsTest extends AbstractTest {
+    private ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private Product originalProduct;
 
-    private final CountDownLatch loadProductsLatch = new CountDownLatch(3);
-    private final CountDownLatch aliceLatch = new CountDownLatch(1);
-
-    public class AliceTransaction implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            product.setQuantity(6L);
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }
-                });
-            } catch (StaleObjectStateException expected) {
-                LOGGER.info("Alice: Optimistic locking failure", expected);
-            }
-            aliceLatch.countDown();
-        }
-    }
-
-    public class BobTransaction implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            aliceLatch.await();
-                            product.incrementLikes();
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }
-                });
-            } catch (StaleObjectStateException expected) {
-                LOGGER.info("Bob: Optimistic locking failure", expected);
-            }
-        }
-    }
-
-    public class VladTransaction implements Runnable {
-
-        @Override
-        public void run() {
-            try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            aliceLatch.await();
-                            product.setDescription("Plasma HDTV");
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }
-                });
-            } catch (StaleObjectStateException expected) {
-                LOGGER.info("Vlad: Optimistic locking failure", expected);
-            }
-        }
-    }
-
-    @Test
-    public void testOptimisticLocking() throws InterruptedException {
-
-        doInTransaction(new TransactionCallable<Void>() {
+    @Before
+    public void addProduct(){
+        originalProduct = doInTransaction(new TransactionCallable<Product>() {
             @Override
-            public Void execute(Session session) {
+            public Product execute(Session session) {
                 Product product = Product.newInstance();
                 product.setId(1L);
                 product.setName("TV");
@@ -110,21 +40,157 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
                 product.setPrice(BigDecimal.valueOf(199.99));
                 product.setQuantity(7L);
                 session.persist(product);
-                return null;
+                return product;
             }
         });
+    }
 
-        Thread alice = new Thread(new AliceTransaction());
-        Thread bob = new Thread(new BobTransaction());
-        Thread vlad = new Thread(new VladTransaction());
 
-        alice.start();
-        bob.start();
-        vlad.start();
 
-        alice.join();
-        bob.join();
-        vlad.join();
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    static interface DoWithProduct{
+        void with(Product product);
+    }
+    public static class ModifyQuantity implements  DoWithProduct{
+        private final Long newQuantity;
+
+        public ModifyQuantity(Long newQuantity) {
+            this.newQuantity = newQuantity;
+        }
+
+        public void with(Product product) {
+            product.setQuantity(newQuantity);
+        }
+    }
+
+    public static class ModifyDescription implements  DoWithProduct{
+        private final String newDesc;
+
+        public ModifyDescription(String newDesc) {
+            this.newDesc = newDesc;
+        }
+
+
+        public void with(Product product) {
+            product.setDescription(newDesc);
+        }
+    }
+
+
+    public static class IncLikes implements DoWithProduct{
+
+        public void with(Product product) {
+            product.incrementLikes();
+        }
+    }
+
+
+    public class TransactionTemplate implements Callable<Void> {
+        private final DoWithProduct doWithProduct;
+        private CyclicBarrier barrier;
+
+        public TransactionTemplate(DoWithProduct doWithProduct, CyclicBarrier barrier) {
+            this.doWithProduct = doWithProduct;
+            this.barrier = barrier;
+        }
+
+        public Void call() {
+                doInTransaction(new TransactionCallable<Void>() {
+                    @Override
+                    public Void execute(Session session) {
+                        try {
+                            Product product = (Product) session.get(Product.class, 1L);
+                            barrier.await();
+                            doWithProduct.with(product);
+                            return null;
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(e);
+                        } catch (BrokenBarrierException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                });
+            return null;
+        }
+    }
+
+
+    public Product getProductById(final long productId) {
+        return doInTransaction(new TransactionCallable<Product>() {
+            @Override
+            public Product execute(Session session) {
+                return (Product) session.get(Product.class, productId);
+            }
+        });
+}
+    @Test
+    public void canConcurrentlyModifyEachOfSubEntities() throws InterruptedException, ExecutionException {
+        executeOperations(
+                new IncLikes(),
+                new ModifyDescription("Plasma HDTV"),
+                new ModifyQuantity(1000L));
+
+        Product modifiedProduct= getProductById(originalProduct.getId());
+
+        assertThat(modifiedProduct.getDescription(), equalTo("Plasma HDTV"));
+        assertThat(modifiedProduct.getQuantity(), equalTo(1000L));
+        assertThat(modifiedProduct.getLikes(), equalTo(originalProduct.getLikes() + 1));
+    }
+
+
+
+    @Test
+    public void optimisticLockingViolationForConcurrentStockModifications() throws InterruptedException, ExecutionException {
+        expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
+
+        executeOperations(
+                            new IncLikes(),
+                            new ModifyQuantity(100L),
+                            new ModifyDescription("Plasma HDTV"),
+                            new ModifyQuantity(1000L));
+    }
+
+    @Test
+    public void optimisticLockingViolationForConcurrentProductModifications() throws InterruptedException, ExecutionException {
+        expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
+
+        executeOperations(
+                            new IncLikes(),
+                            new ModifyDescription("LCD TV"),
+                            new ModifyDescription("Plasma HDTV"),
+                            new ModifyQuantity(1L));
+
+
+
+    }
+
+
+    @Test
+    public void optimisticLockingViolationForConcurrentLikeModifications() throws InterruptedException, ExecutionException {
+        expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
+
+        executeOperations(
+                            new IncLikes(),
+                            new IncLikes(),
+                            new ModifyDescription("Plasma HDTV"),
+                            new ModifyQuantity(2L));
+
+    }
+
+    private void executeOperations(DoWithProduct... operations) throws InterruptedException, ExecutionException {
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(operations.length);
+        List<TransactionTemplate> tasks = new LinkedList<TransactionTemplate>();
+        for (DoWithProduct operation : operations) {
+            tasks.add(new TransactionTemplate(operation, cyclicBarrier));
+        }
+
+        List<Future<Void>> futures = executorService.invokeAll(tasks);
+
+        for (Future<Void> future : futures) {
+            future.get();
+        }
     }
 
     @Override
