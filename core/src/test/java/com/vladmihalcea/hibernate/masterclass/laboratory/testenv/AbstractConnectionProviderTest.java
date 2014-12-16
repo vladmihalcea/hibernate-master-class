@@ -6,8 +6,12 @@ import org.hibernate.Transaction;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConnectionProviderTest {
+
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     private SessionFactory sf;
 
@@ -22,6 +26,10 @@ public abstract class AbstractConnectionProviderTest {
     }
 
     protected abstract SessionFactory newSessionFactory();
+
+    public SessionFactory getSessionFactory() {
+        return sf;
+    }
 
     @Test
     public void test() {

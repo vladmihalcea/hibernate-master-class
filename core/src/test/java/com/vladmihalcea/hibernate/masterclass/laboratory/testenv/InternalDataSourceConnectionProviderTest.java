@@ -8,7 +8,7 @@ import java.util.Properties;
 
 public class InternalDataSourceConnectionProviderTest extends AbstractConnectionProviderTest {
 
-    protected SessionFactory newSessionFactory() {
+    protected Properties getProperties() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
@@ -22,6 +22,11 @@ public class InternalDataSourceConnectionProviderTest extends AbstractConnection
         //c3p0 settings
         properties.put("hibernate.c3p0.min_size", 1);
         properties.put("hibernate.c3p0.max_size", 5);
+        return properties;
+    }
+
+    protected SessionFactory newSessionFactory() {
+        Properties properties = getProperties();
 
         return new Configuration()
                 .addProperties(properties)

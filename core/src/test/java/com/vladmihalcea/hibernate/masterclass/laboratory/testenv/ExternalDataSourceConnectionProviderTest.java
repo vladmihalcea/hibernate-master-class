@@ -11,14 +11,19 @@ import java.util.Properties;
 
 public class ExternalDataSourceConnectionProviderTest extends AbstractConnectionProviderTest {
 
-    @Override
-    protected SessionFactory newSessionFactory() {
+    protected Properties getProperties() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
         properties.put("hibernate.hbm2ddl.auto", "update");
         //data source settings
         properties.put("hibernate.connection.datasource", newDataSource());
+        return properties;
+    }
+
+    @Override
+    protected SessionFactory newSessionFactory() {
+        Properties properties = getProperties();
 
         return new Configuration()
                 .addProperties(properties)

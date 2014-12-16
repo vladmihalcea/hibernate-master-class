@@ -8,8 +8,7 @@ import java.util.Properties;
 
 public class DriverConnectionProviderTest extends AbstractConnectionProviderTest {
 
-    @Override
-    protected SessionFactory newSessionFactory() {
+    protected Properties getProperties() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
         //log settings
@@ -20,6 +19,12 @@ public class DriverConnectionProviderTest extends AbstractConnectionProviderTest
         properties.put("hibernate.connection.url", "jdbc:hsqldb:mem:test");
         properties.put("hibernate.connection.username", "sa");
         properties.put("hibernate.connection.password", "");
+        return properties;
+    }
+
+    @Override
+    protected SessionFactory newSessionFactory() {
+        Properties properties = getProperties();
 
         return new Configuration()
                 .addProperties(properties)
