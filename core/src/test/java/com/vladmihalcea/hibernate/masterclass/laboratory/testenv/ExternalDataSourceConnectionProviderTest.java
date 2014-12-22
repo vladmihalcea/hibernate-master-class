@@ -35,7 +35,7 @@ public class ExternalDataSourceConnectionProviderTest extends AbstractConnection
                 );
     }
 
-    private ProxyDataSource newDataSource() {
+    protected ProxyDataSource newDataSource() {
         JDBCDataSource actualDataSource = new JDBCDataSource();
         actualDataSource.setUrl("jdbc:hsqldb:mem:test");
         actualDataSource.setUser("sa");
