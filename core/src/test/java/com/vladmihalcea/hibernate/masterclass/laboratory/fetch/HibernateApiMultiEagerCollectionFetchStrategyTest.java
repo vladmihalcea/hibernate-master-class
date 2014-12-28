@@ -23,7 +23,7 @@ import static org.junit.Assert.*;
  *
  * @author Vlad Mihalcea
  */
-public class HibernateApiFetchStrategyTest extends AbstractTest {
+public class HibernateApiMultiEagerCollectionFetchStrategyTest extends AbstractTest {
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
@@ -39,6 +39,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
             Company.class,
             SubVersion.class,
             Version.class,
+            Review.class,
         };
     }
 
@@ -75,6 +76,15 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                 importer.setName("Importer");
                 session.persist(importer);
                 product.setImporter(importer);
+
+                Review review1 = new Review();
+                review1.setComment("Great product");
+
+                Review review2 = new Review();
+                review2.setComment("Sensational product");
+
+                product.addReview(review1);
+                product.addReview(review2);
 
                 session.persist(product);
                 return product.getId();
@@ -130,7 +140,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                 List products = session.createCriteria(Product.class)
                         .add(Restrictions.eq("id", productId))
                         .list();
-                assertEquals(2, products.size());
+                assertEquals(4, products.size());
                 assertSame(products.get(0), products.get(1));
                 return null;
             }
@@ -149,6 +159,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                 return null;
             }
         });
+
     }
 
     @Entity(name = "Company")
@@ -499,6 +510,68 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
         }
     }
 
+    @Entity(name = "review")
+    public static class Review {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+
+        @ManyToOne
+        private Product product;
+
+        private String comment;
+
+        public Long getId() {
+            return id;
+        }
+
+        public Product getProduct() {
+            return product;
+        }
+
+        public void setProduct(Product product) {
+            this.product = product;
+        }
+
+        public String getComment() {
+            return comment;
+        }
+
+        public void setComment(String comment) {
+            this.comment = comment;
+        }
+
+        @Override
+        public int hashCode() {
+            HashCodeBuilder hcb = new HashCodeBuilder();
+            hcb.append(comment);
+            return hcb.toHashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof Importer)) {
+                return false;
+            }
+            Importer that = (Importer) obj;
+            EqualsBuilder eb = new EqualsBuilder();
+            eb.append(comment, that.getName());
+            return eb.isEquals();
+        }
+
+        @Override
+        public String toString() {
+            ToStringBuilder tsb = new ToStringBuilder(this);
+            tsb.append("id", id);
+            tsb.append("comment", comment);
+            return tsb.toString();
+        }
+    }
+
     @Entity(name = "Product")
     public static class Product {
 
@@ -513,7 +586,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
 
         private Integer quantity;
 
-        @ManyToOne(fetch = FetchType.EAGER)
+        @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "company_id", nullable = false)
         private Company company;
 
@@ -527,6 +600,9 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
         @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "product", orphanRemoval = true)
         @OrderBy("index")
         private Set<Image> images = new LinkedHashSet<Image>();
+
+        @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "product", orphanRemoval = true)
+        private Set<Review> reviews = new LinkedHashSet<Review>();
 
         @javax.persistence.Version
         private int version;
@@ -606,6 +682,11 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
         public void removeImage(Image image) {
             images.remove(image);
             image.setProduct(null);
+        }
+
+        public void addReview(Review review) {
+            reviews.add(review);
+            review.setProduct(this);
         }
 
         public void addWarehouse(WarehouseProductInfo warehouseProductInfo) {
