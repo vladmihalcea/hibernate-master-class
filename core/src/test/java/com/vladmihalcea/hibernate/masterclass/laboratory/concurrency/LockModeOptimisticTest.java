@@ -8,9 +8,11 @@ import org.hibernate.dialect.lock.OptimisticEntityLockException;
 import org.junit.Test;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.concurrent.Callable;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.fail;
 
 /**
  * LockModeOptimisticTest - Test to check LockMode.OPTIMISTIC
@@ -22,20 +24,22 @@ public class LockModeOptimisticTest extends AbstractTest {
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[] {
-            Product.class
+            Product.class,
+            OrderLine.class
         };
     }
 
     @Test
-    public void testOptimisticLocking() {
+    public void testImplicitOptimisticLockingN() {
 
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
                 Product product = new Product();
                 product.setId(1L);
-                product.setQuantity(7L);
+                product.setPrice(BigDecimal.valueOf(12, 99));
                 session.persist(product);
+
                 return null;
             }
         });
@@ -43,7 +47,7 @@ public class LockModeOptimisticTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
-                final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.NONE));
+                final Product product = (Product) session.get(Product.class, 1L);
                 try {
                     executeAndWait(new Callable<Void>() {
                         @Override
@@ -53,7 +57,7 @@ public class LockModeOptimisticTest extends AbstractTest {
                                 public Void execute(Session _session) {
                                     Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
                                     assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.incrementLikes();
+                                    otherThreadProduct.setPrice(BigDecimal.valueOf(14.49));
                                     return null;
                                 }
                             });
@@ -62,6 +66,25 @@ public class LockModeOptimisticTest extends AbstractTest {
                 } catch (Exception e) {
                     fail(e.getMessage());
                 }
+                OrderLine orderLine = new OrderLine();
+                orderLine.setProduct(product);
+                session.persist(orderLine);
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void testExplicitOptimisticLockingN() {
+
+        doInTransaction(new TransactionCallable<Void>() {
+            @Override
+            public Void execute(Session session) {
+                Product product = new Product();
+                product.setId(1L);
+                product.setPrice(BigDecimal.valueOf(12, 99));
+                session.persist(product);
+
                 return null;
             }
         });
@@ -71,6 +94,7 @@ public class LockModeOptimisticTest extends AbstractTest {
                 @Override
                 public Void execute(Session session) {
                     final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
+
                     executeAndWait(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
@@ -79,17 +103,22 @@ public class LockModeOptimisticTest extends AbstractTest {
                                 public Void execute(Session _session) {
                                     Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
                                     assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.incrementLikes();
+                                    otherThreadProduct.setPrice(BigDecimal.valueOf(14.49));
                                     return null;
                                 }
                             });
                         }
                     });
+
+                    OrderLine orderLine = new OrderLine();
+                    orderLine.setProduct(product);
+                    session.persist(orderLine);
                     return null;
                 }
             });
-        } catch (OptimisticEntityLockException e) {
-            LOGGER.error("Optimistic locking failure", e);
+            fail("It should have thrown OptimisticEntityLockException!");
+        } catch (OptimisticEntityLockException expected) {
+            LOGGER.info("Failure: ", expected);
         }
     }
 
@@ -105,15 +134,10 @@ public class LockModeOptimisticTest extends AbstractTest {
         @Id
         private Long id;
 
-        private long quantity;
-
-        private int likes;
+        private BigDecimal price;
 
         @Version
         private int version;
-
-        public Product() {
-        }
 
         public Long getId() {
             return id;
@@ -123,20 +147,48 @@ public class LockModeOptimisticTest extends AbstractTest {
             this.id = id;
         }
 
-        public long getQuantity() {
-            return quantity;
+        public BigDecimal getPrice() {
+            return price;
         }
 
-        public void setQuantity(long quantity) {
-            this.quantity = quantity;
+        public void setPrice(BigDecimal price) {
+            this.price = price;
+        }
+    }
+
+    /**
+     * OrderLine - Order Line
+     *
+     * @author Vlad Mihalcea
+     */
+    @Entity(name = "OrderLine")
+    @Table(name = "order_line")
+    public static class OrderLine {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+
+        @ManyToOne
+        private Product product;
+
+        @Version
+        private int version;
+
+        public Long getId() {
+            return id;
         }
 
-        public int getLikes() {
-            return likes;
+        public void setId(Long id) {
+            this.id = id;
         }
 
-        public int incrementLikes() {
-            return ++likes;
+        public Product getProduct() {
+            return product;
+        }
+
+        public void setProduct(Product product) {
+            this.product = product;
         }
     }
 }
