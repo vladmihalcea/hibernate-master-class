@@ -5,6 +5,7 @@ import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.dialect.lock.OptimisticEntityLockException;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -29,20 +30,24 @@ public class LockModeOptimisticTest extends AbstractTest {
         };
     }
 
-    @Test
-    public void testImplicitOptimisticLockingN() {
-
+    @Before
+    public void init() {
+        super.init();
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
                 Product product = new Product();
                 product.setId(1L);
+                product.setDescription("USB Flash Drive");
                 product.setPrice(BigDecimal.valueOf(12, 99));
                 session.persist(product);
-
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testImplicitOptimisticLockingN() {
 
         doInTransaction(new TransactionCallable<Void>() {
             @Override
@@ -76,18 +81,6 @@ public class LockModeOptimisticTest extends AbstractTest {
 
     @Test
     public void testExplicitOptimisticLockingN() {
-
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Product product = new Product();
-                product.setId(1L);
-                product.setPrice(BigDecimal.valueOf(12, 99));
-                session.persist(product);
-
-                return null;
-            }
-        });
 
         try {
             doInTransaction(new TransactionCallable<Void>() {
@@ -134,6 +127,8 @@ public class LockModeOptimisticTest extends AbstractTest {
         @Id
         private Long id;
 
+        private String description;
+
         private BigDecimal price;
 
         @Version
@@ -145,6 +140,14 @@ public class LockModeOptimisticTest extends AbstractTest {
 
         public void setId(Long id) {
             this.id = id;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
         }
 
         public BigDecimal getPrice() {
