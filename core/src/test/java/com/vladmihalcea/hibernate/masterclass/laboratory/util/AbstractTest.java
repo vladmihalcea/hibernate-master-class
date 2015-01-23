@@ -27,7 +27,16 @@ public abstract class AbstractTest {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     protected static abstract class TransactionCallable<T> {
+
+        protected void beforeTransactionCompletion() {
+
+        }
+
         public abstract T execute(Session session);
+
+        protected void afterTransactionCompletion() {
+
+        }
     }
 
     private SessionFactory sf;
@@ -40,6 +49,10 @@ public abstract class AbstractTest {
     @After
     public void destroy() {
         sf.close();
+    }
+
+    public SessionFactory getSessionFactory() {
+        return sf;
     }
 
     protected abstract Class<?>[] entities();
@@ -102,6 +115,7 @@ public abstract class AbstractTest {
         Transaction txn = null;
         try {
             session = sf.openSession();
+            callable.beforeTransactionCompletion();
             txn = session.beginTransaction();
 
             result = callable.execute(session);
@@ -110,6 +124,7 @@ public abstract class AbstractTest {
             if ( txn != null && txn.isActive() ) txn.rollback();
             throw e;
         } finally {
+            callable.afterTransactionCompletion();
             if (session != null) {
                 session.close();
             }
@@ -127,10 +142,12 @@ public abstract class AbstractTest {
             for (Future<T> future : futures) {
                 future.get();
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected <T> Future<T> executeNoWait(Callable<T> callable) {
+        return executorService.submit(callable);
     }
 }

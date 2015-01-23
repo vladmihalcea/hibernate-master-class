@@ -22,7 +22,8 @@
 
     <logger name="org.springframework" level="warn"/>
     <logger name="org.hibernate" level="warn"/>
-    <logger name="org.hibernate.event.internal" level="debug"/>
+    <logger name="org.hibernate.event.internal" level="info"/>
+    <logger name="org.hibernate.engine.transaction.internal" level="debug"/>
 
     <logger name="com.vladmihalcea" level="debug"/>
     <root>

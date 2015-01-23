@@ -39,7 +39,7 @@ public class LockModeOptimisticTest extends AbstractTest {
                 Product product = new Product();
                 product.setId(1L);
                 product.setDescription("USB Flash Drive");
-                product.setPrice(BigDecimal.valueOf(12, 99));
+                product.setPrice(BigDecimal.valueOf(12.99));
                 session.persist(product);
                 return null;
             }
@@ -47,7 +47,7 @@ public class LockModeOptimisticTest extends AbstractTest {
     }
 
     @Test
-    public void testImplicitOptimisticLockingN() {
+    public void testImplicitOptimisticLocking() {
 
         doInTransaction(new TransactionCallable<Void>() {
             @Override
@@ -60,9 +60,9 @@ public class LockModeOptimisticTest extends AbstractTest {
                             return doInTransaction(new TransactionCallable<Void>() {
                                 @Override
                                 public Void execute(Session _session) {
-                                    Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
-                                    assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.setPrice(BigDecimal.valueOf(14.49));
+                                    Product _product = (Product) _session.get(Product.class, 1L);
+                                    assertNotSame(product, _product);
+                                    _product.setPrice(BigDecimal.valueOf(14.49));
                                     return null;
                                 }
                             });
@@ -80,7 +80,7 @@ public class LockModeOptimisticTest extends AbstractTest {
     }
 
     @Test
-    public void testExplicitOptimisticLockingN() {
+    public void testExplicitOptimisticLocking() {
 
         try {
             doInTransaction(new TransactionCallable<Void>() {
@@ -94,9 +94,9 @@ public class LockModeOptimisticTest extends AbstractTest {
                             return doInTransaction(new TransactionCallable<Void>() {
                                 @Override
                                 public Void execute(Session _session) {
-                                    Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
-                                    assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.setPrice(BigDecimal.valueOf(14.49));
+                                    Product _product = (Product) _session.get(Product.class, 1L);
+                                    assertNotSame(product, _product);
+                                    _product.setPrice(BigDecimal.valueOf(14.49));
                                     return null;
                                 }
                             });
