@@ -17,52 +17,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Vlad Mihalcea
  */
-public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimisticTest {
-
-    private AtomicBoolean overridePriceSync = new AtomicBoolean();
-    private AtomicBoolean overridePriceAsync = new AtomicBoolean();
-
-    final CountDownLatch endLatch = new CountDownLatch(2);
+public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimisticRaceConditionTest {
 
     @Override
-    protected Interceptor interceptor() {
-        return new EmptyInterceptor() {
-            @Override
-            public void beforeTransactionCompletion(Transaction tx) {
-                final Work work = new Work() {
-                    @Override
-                    public void execute(Connection connection) throws SQLException {
-                        try(PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
-                            ps.executeUpdate();
-                        }
-                    }
-                };
-                if(overridePriceSync.get()) {
-                    LOGGER.info("Overwrite product price synchronously");
-                    Session _session = getSessionFactory().openSession();
-                    _session.doWork(work);
-                    _session.close();
-                } else if(overridePriceAsync.get()) {
-                    LOGGER.info("Overwrite product price asynchronously");
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            Session _session = getSessionFactory().openSession();
-                            _session.doWork(work);
-                            endLatch.countDown();
-                            _session.close();
-                            return null;
-                        }
-                    });
-                    try {
-                        LOGGER.info("Wait 500 ms for lock to be acquired!");
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        throw new IllegalStateException(e);
-                    }
-                }
-            }
-        };
+    protected void runRaceCondition(Work work) {
+        LOGGER.info("Overwrite product price synchronously");
+        Session _session = getSessionFactory().openSession();
+        _session.doWork(work);
+        _session.close();
     }
 
     @Test
@@ -75,7 +37,7 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
                         final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
                         OrderLine orderLine = new OrderLine(product);
                         session.persist(orderLine);
-                        overridePriceSync.set(true);
+                        raceConditionReady();
                     } catch (Exception e) {
                         throw new IllegalStateException(e);
                     }
@@ -85,32 +47,6 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
         } catch (OptimisticEntityLockException expected) {
             LOGGER.info("Failure: ", expected);
         }
-    }
-
-    @Test
-    public void testExplicitOptimisticLockingWithPessimisticLockUpgrade() throws InterruptedException {
-
-        try {
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(Session session) {
-                    try {
-                        final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
-                        OrderLine orderLine = new OrderLine(product);
-                        session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                        session.persist(orderLine);
-                        overridePriceAsync.set(true);
-                    } catch (Exception e) {
-                        throw new IllegalStateException(e);
-                    }
-                    return null;
-                }
-            });
-        } catch (OptimisticEntityLockException expected) {
-            LOGGER.info("Failure: ", expected);
-        }
-        endLatch.countDown();
-        endLatch.await();
     }
 
 }
