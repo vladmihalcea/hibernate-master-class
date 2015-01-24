@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Vlad Mihalcea
  */
-public class LockModeOptimisticWithPessimisticLockUpgradeTest extends AbstractLockModeOptimisticTest {
+public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimisticTest {
 
     private AtomicBoolean overridePriceSync = new AtomicBoolean();
     private AtomicBoolean overridePriceAsync = new AtomicBoolean();
