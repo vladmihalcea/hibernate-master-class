@@ -17,14 +17,45 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Vlad Mihalcea
  */
-public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimisticRaceConditionTest {
+public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimisticTest {
+
+    private AtomicBoolean ready = new AtomicBoolean();
+    private final CountDownLatch endLatch = new CountDownLatch(1);
 
     @Override
-    protected void runRaceCondition(Work work) {
-        LOGGER.info("Overwrite product price synchronously");
-        Session _session = getSessionFactory().openSession();
-        _session.doWork(work);
-        _session.close();
+    protected Interceptor interceptor() {
+        return new EmptyInterceptor() {
+            @Override
+            public void beforeTransactionCompletion(Transaction tx) {
+                if(ready.get()) {
+                    LOGGER.info("Overwrite product price asynchronously");
+
+                    executeNoWait(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            Session _session = getSessionFactory().openSession();
+                            _session.doWork(new Work() {
+                                @Override
+                                public void execute(Connection connection) throws SQLException {
+                                    try(PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
+                                        ps.executeUpdate();
+                                    }
+                                }
+                            });
+                            _session.close();
+                            endLatch.countDown();
+                            return null;
+                        }
+                    });
+                    try {
+                        LOGGER.info("Wait 500 ms for lock to be acquired!");
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }
+        };
     }
 
     @Test
@@ -37,7 +68,8 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
                         final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
                         OrderLine orderLine = new OrderLine(product);
                         session.persist(orderLine);
-                        raceConditionReady();
+                        lockUpgrade(session, product);
+                        ready.set(true);
                     } catch (Exception e) {
                         throw new IllegalStateException(e);
                     }
@@ -47,6 +79,11 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
         } catch (OptimisticEntityLockException expected) {
             LOGGER.info("Failure: ", expected);
         }
+        endLatch.await();
+    }
+
+    protected void lockUpgrade(Session session, Product product) {
+
     }
 
 }
