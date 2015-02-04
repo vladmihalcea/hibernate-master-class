@@ -4,6 +4,7 @@ import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
+import org.hibernate.StaleObjectStateException;
 import org.hibernate.annotations.Immutable;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +12,9 @@ import org.junit.Test;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+
+import static org.junit.Assert.fail;
 
 
 /**
@@ -19,8 +23,6 @@ import java.util.List;
  * @author Vlad Mihalcea
  */
 public class LockModeOptimisticForceIncrementTest extends AbstractTest {
-
-    private Repository repository;
 
     @Override
     protected Class<?>[] entities() {
@@ -36,7 +38,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
-            repository = new Repository("Hibernate-Master-Class");
+            Repository repository = new Repository("Hibernate-Master-Class");
             session.persist(repository);
             session.flush();
             return null;
@@ -49,15 +51,56 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
-            session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
-            Commit commit = new Commit(repository);
-            commit.getChanges().add(new Change("READ-ME.xml", "0a1,5..."));
-            commit.getChanges().add(new Change("web.xml", "17c17..."));
-            session.persist(commit);
-            return null;
+                Repository repository = (Repository) session.get(Repository.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
+                Commit commit = new Commit(repository);
+                commit.getChanges().add(new Change("README.txt", "0a1,5..."));
+                commit.getChanges().add(new Change("web.xml", "17c17..."));
+                session.persist(commit);
+                return null;
             }
         });
     }
+
+    @Test
+    public void testConcurrentOptimisticForceIncrementLocking() throws InterruptedException {
+        try {
+            doInTransaction(new TransactionCallable<Void>() {
+                @Override
+                public Void execute(Session session) {
+                    Repository repository = (Repository) session.get(Repository.class, 1L);
+                    session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
+
+                    executeAndWait(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            return doInTransaction(new TransactionCallable<Void>() {
+                                @Override
+                                public Void execute(Session _session) {
+                                    Repository _repository = (Repository) _session.get(Repository.class, 1L);
+                                    _session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(_repository);
+                                    Commit _commit = new Commit(_repository);
+                                    _commit.getChanges().add(new Change("index.html", "0a1,2..."));
+                                    _session.persist(_commit);
+                                    return null;
+                                }
+                            });
+                        }
+                    });
+
+                    Commit commit = new Commit(repository);
+                    commit.getChanges().add(new Change("README.txt", "0a1,5..."));
+                    commit.getChanges().add(new Change("web.xml", "17c17..."));
+                    session.persist(commit);
+                    return null;
+                }
+            });
+            fail("Should have thrown StaleObjectStateException!");
+        } catch (StaleObjectStateException expected) {
+            LOGGER.info("Failure: ", expected);
+        }
+    }
+
 
     /**
      * Repository - Repository
