@@ -48,6 +48,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
 
     @Test
     public void testOptimisticForceIncrementLocking() throws InterruptedException {
+        LOGGER.info("Test Concurrent OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
         doInTransaction(new TransactionCallable<Void>() {
             @Override
             public Void execute(Session session) {
@@ -64,6 +65,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
 
     @Test
     public void testConcurrentOptimisticForceIncrementLocking() throws InterruptedException {
+        LOGGER.info("Test Concurrent OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
         try {
             doInTransaction(new TransactionCallable<Void>() {
                 @Override
