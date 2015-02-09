@@ -164,6 +164,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
         }
 
         public Commit(Repository repository) {
+            this.repository = repository;
         }
 
         public Repository getRepository() {
