@@ -86,11 +86,24 @@
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <commons-lang.version>3.3.2</commons-lang.version>
-        <hibernate.version>4.3.7.Final</hibernate.version>
+        <hibernate.version>4.3.8.Final</hibernate.version>
         <javassist.version>3.18.1-GA</javassist.version>
         <datasource-proxy.version>1.2.1</datasource-proxy.version>
         <hsqldb.version>2.3.2</hsqldb.version>
         <junit.version>4.11</junit.version>
     </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
