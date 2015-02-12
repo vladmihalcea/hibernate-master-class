@@ -153,9 +153,7 @@ public class LockModePessimisticForceIncrementTest extends AbstractTest {
                 return null;
             }
         });
-        endLatch.await();
     }
-
 
     /**
      * Repository - Repository
@@ -219,6 +217,7 @@ public class LockModePessimisticForceIncrementTest extends AbstractTest {
         }
 
         public Commit(Repository repository) {
+            this.repository = repository;
         }
 
         public Repository getRepository() {

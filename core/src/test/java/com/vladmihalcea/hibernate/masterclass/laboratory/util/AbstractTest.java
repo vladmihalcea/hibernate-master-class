@@ -22,6 +22,12 @@ import java.util.concurrent.*;
 
 public abstract class AbstractTest {
 
+    protected enum LockType {
+        LOCKS,
+        MVLOCKS,
+        MVCC
+    }
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
@@ -100,7 +106,7 @@ public abstract class AbstractTest {
 
     private ProxyDataSource newDataSource() {
         JDBCDataSource actualDataSource = new JDBCDataSource();
-        actualDataSource.setUrl("jdbc:hsqldb:mem:test");
+        actualDataSource.setUrl("jdbc:hsqldb:mem:test;hsqldb.tx=" + lockType().name().toLowerCase());
         actualDataSource.setUser("sa");
         actualDataSource.setPassword("");
         ProxyDataSource proxyDataSource = new ProxyDataSource();
@@ -149,5 +155,9 @@ public abstract class AbstractTest {
 
     protected <T> Future<T> executeNoWait(Callable<T> callable) {
         return executorService.submit(callable);
+    }
+
+    protected LockType lockType() {
+        return LockType.LOCKS;
     }
 }
