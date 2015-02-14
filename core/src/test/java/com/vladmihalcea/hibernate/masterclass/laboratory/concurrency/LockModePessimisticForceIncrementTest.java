@@ -142,11 +142,6 @@ public class LockModePessimisticForceIncrementTest extends AbstractTest {
                     });
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_FORCE_INCREMENT)).lock(repository);
                     fail("Should have thrown StaleObjectStateException!");
-
-                    Commit commit = new Commit(repository);
-                    commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-                    commit.getChanges().add(new Change("web.xml", "17c17..."));
-                    session.persist(commit);
                 } catch (StaleObjectStateException expected) {
                     LOGGER.info("Failure: ", expected);
                 }
