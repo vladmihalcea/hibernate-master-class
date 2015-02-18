@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -96,7 +97,7 @@ public abstract class AbstractTest {
 
     protected Properties getProperties() {
         Properties properties = new Properties();
-        properties.put("hibernate.dialect", "org.hibernate.dialect.HSQLDialect");
+        properties.put("hibernate.dialect", hibernateDialect());
         //log settings
         properties.put("hibernate.hbm2ddl.auto", "create-drop");
         //data source settings
@@ -105,14 +106,22 @@ public abstract class AbstractTest {
     }
 
     private ProxyDataSource newDataSource() {
-        JDBCDataSource actualDataSource = new JDBCDataSource();
-        actualDataSource.setUrl("jdbc:hsqldb:mem:test;hsqldb.tx=" + lockType().name().toLowerCase());
-        actualDataSource.setUser("sa");
-        actualDataSource.setPassword("");
         ProxyDataSource proxyDataSource = new ProxyDataSource();
-        proxyDataSource.setDataSource(actualDataSource);
+        proxyDataSource.setDataSource(dataSource());
         proxyDataSource.setListener(new SLF4JQueryLoggingListener());
         return proxyDataSource;
+    }
+
+    protected String hibernateDialect() {
+        return "org.hibernate.dialect.HSQLDialect";
+    }
+
+    protected DataSource dataSource() {
+        JDBCDataSource dataSource = new JDBCDataSource();
+        dataSource.setUrl("jdbc:hsqldb:mem:test;hsqldb.tx=" + lockType().name().toLowerCase());
+        dataSource.setUser("sa");
+        dataSource.setPassword("");
+        return dataSource;
     }
 
     protected <T> T doInTransaction(TransactionCallable<T> callable) {

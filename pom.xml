@@ -74,6 +74,13 @@
         </dependency>
 
         <dependency>
+            <groupId>postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
@@ -90,6 +97,7 @@
         <javassist.version>3.18.1-GA</javassist.version>
         <datasource-proxy.version>1.2.1</datasource-proxy.version>
         <hsqldb.version>2.3.2</hsqldb.version>
+        <postgresql.version>9.1-902.jdbc4</postgresql.version>
         <junit.version>4.11</junit.version>
     </properties>
 
