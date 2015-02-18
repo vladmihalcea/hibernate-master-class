@@ -162,11 +162,54 @@ public abstract class AbstractTest {
         }
     }
 
+    protected <T> void executeNoWait(Callable<T> callable, final Callable<Void> completionCallback) {
+        final Future<T> future = executorService.submit(callable);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!future.isDone()) {
+                    sleep(100);
+                }
+                try {
+                    completionCallback.call();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        }).start();
+    }
+
     protected <T> Future<T> executeNoWait(Callable<T> callable) {
         return executorService.submit(callable);
     }
 
     protected LockType lockType() {
         return LockType.LOCKS;
+    }
+
+    protected void awaitOnLatch(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected void sleep(int millis) {
+        sleep(millis, null);
+    }
+
+    protected <V> V sleep(int millis, Callable<V> callable) {
+        V result = null;
+        try {
+            LOGGER.info("Wait {} ms!", millis);
+            if (callable != null) {
+                result = callable.call();
+            }
+            Thread.sleep(millis);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return result;
     }
 }
