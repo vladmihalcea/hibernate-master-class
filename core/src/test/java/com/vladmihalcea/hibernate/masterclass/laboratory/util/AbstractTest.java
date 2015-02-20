@@ -33,13 +33,17 @@ public abstract class AbstractTest {
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-    protected static abstract class TransactionCallable<T> {
+    @FunctionalInterface
+    protected static interface TransactionCallable<T> {
+
+        T execute(Session session);
+    }
+
+    protected static abstract class TransactionLifecycleCallable<T> implements TransactionCallable<T> {
 
         protected void beforeTransactionCompletion() {
 
         }
-
-        public abstract T execute(Session session);
 
         protected void afterTransactionCompletion() {
 
@@ -128,9 +132,13 @@ public abstract class AbstractTest {
         T result = null;
         Session session = null;
         Transaction txn = null;
+        TransactionLifecycleCallable lifecycleCallable = (callable instanceof TransactionLifecycleCallable)
+                ? (TransactionLifecycleCallable) callable : null;
         try {
             session = sf.openSession();
-            callable.beforeTransactionCompletion();
+            if (lifecycleCallable != null) {
+                lifecycleCallable.beforeTransactionCompletion();
+            }
             txn = session.beginTransaction();
 
             result = callable.execute(session);
@@ -139,7 +147,9 @@ public abstract class AbstractTest {
             if ( txn != null && txn.isActive() ) txn.rollback();
             throw e;
         } finally {
-            callable.afterTransactionCompletion();
+            if (lifecycleCallable != null) {
+                lifecycleCallable.afterTransactionCompletion();
+            }
             if (session != null) {
                 session.close();
             }

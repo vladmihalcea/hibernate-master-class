@@ -13,7 +13,6 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Version;
 import java.math.BigDecimal;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
 
@@ -39,59 +38,44 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     @Before
     public void init() {
         super.init();
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Product product = new Product();
-                product.setId(1L);
-                product.setDescription("USB Flash Drive");
-                product.setPrice(BigDecimal.valueOf(12.99));
-                session.persist(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            Product product = new Product();
+            product.setId(1L);
+            product.setDescription("USB Flash Drive");
+            product.setPrice(BigDecimal.valueOf(12.99));
+            session.persist(product);
+            return null;
         });
     }
 
     @Test
     public void testPessimisticReadDoesNotBlockPessimisticRead() throws InterruptedException {
         LOGGER.info("Test testPessimisticReadDoesNotBlockPessimisticRead");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    Product product = (Product) session.get(Product.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_READ acquired");
+        doInTransaction(session -> {
+            try {
+                Product product = (Product) session.get(Product.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
+                LOGGER.info("PESSIMISTIC_READ acquired");
 
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    awaitOnLatch(startLatch);
-                                    Product _product = (Product) _session.get(Product.class, 1L);
-                                    _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(_product);
-                                    LOGGER.info("PESSIMISTIC_WRITE acquired");
-                                    return null;
-                                }
-                            });
-                            endLatch.countDown();
-                            return null;
-                        }
+                executeNoWait(() -> {
+                    doInTransaction(_session -> {
+                        awaitOnLatch(startLatch);
+                        Product _product = (Product) _session.get(Product.class, 1L);
+                        _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(_product);
+                        LOGGER.info("PESSIMISTIC_WRITE acquired");
+                        return null;
                     });
-                    sleep(WAIT_MILLIS, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            startLatch.countDown();
-                            return null;
-                        }
-                    });
-                } catch (StaleObjectStateException expected) {
-                    LOGGER.info("Failure: ", expected);
-                }
-                return null;
+                    endLatch.countDown();
+                    return null;
+                });
+                sleep(WAIT_MILLIS, () -> {
+                    startLatch.countDown();
+                    return null;
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Failure: ", expected);
             }
+            return null;
         });
         awaitOnLatch(endLatch);
     }
@@ -99,43 +83,31 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     @Test
     public void testPessimisticReadBlocksPessimisticWrite() throws InterruptedException {
         LOGGER.info("Test PessimisticReadBlocksPessimisticWrite");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    Product product = (Product) session.get(Product.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_READ acquired");
+        doInTransaction(session -> {
+            try {
+                Product product = (Product) session.get(Product.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
+                LOGGER.info("PESSIMISTIC_READ acquired");
 
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    awaitOnLatch(startLatch);
-                                    Product _product = (Product) _session.get(Product.class, 1L);
-                                    _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(_product);
-                                    LOGGER.info("PESSIMISTIC_WRITE acquired");
-                                    return null;
-                                }
-                            });
-                            endLatch.countDown();
-                            return null;
-                        }
+                executeNoWait(() -> {
+                    doInTransaction(_session -> {
+                        awaitOnLatch(startLatch);
+                        Product _product = (Product) _session.get(Product.class, 1L);
+                        _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(_product);
+                        LOGGER.info("PESSIMISTIC_WRITE acquired");
+                        return null;
                     });
-                    sleep(WAIT_MILLIS, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            startLatch.countDown();
-                            return null;
-                        }
-                    });
-                } catch (StaleObjectStateException expected) {
-                    LOGGER.info("Failure: ", expected);
-                }
-                return null;
+                    endLatch.countDown();
+                    return null;
+                });
+                sleep(WAIT_MILLIS, () -> {
+                    startLatch.countDown();
+                    return null;
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Failure: ", expected);
             }
+            return null;
         });
         awaitOnLatch(endLatch);
     }
@@ -143,44 +115,32 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     @Test
     public void testPessimisticReadBlocksUpdate() throws InterruptedException {
         LOGGER.info("Test testPessimisticReadBlocksUpdate");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    Product product = (Product) session.get(Product.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_READ acquired");
+        doInTransaction(session -> {
+            try {
+                Product product = (Product) session.get(Product.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
+                LOGGER.info("PESSIMISTIC_READ acquired");
 
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    awaitOnLatch(startLatch);
-                                    Product _product = (Product) _session.get(Product.class, 1L);
-                                    _product.setDescription("USB Flash Memory Stick");
-                                    _session.flush();
-                                    LOGGER.info("Implicit lock acquired");
-                                    return null;
-                                }
-                            });
-                            endLatch.countDown();
-                            return null;
-                        }
+                executeNoWait(() -> {
+                    doInTransaction(_session -> {
+                        awaitOnLatch(startLatch);
+                        Product _product = (Product) _session.get(Product.class, 1L);
+                        _product.setDescription("USB Flash Memory Stick");
+                        _session.flush();
+                        LOGGER.info("Implicit lock acquired");
+                        return null;
                     });
-                    sleep(WAIT_MILLIS, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            startLatch.countDown();
-                            return null;
-                        }
-                    });
-                } catch (StaleObjectStateException expected) {
-                    LOGGER.info("Failure: ", expected);
-                }
-                return null;
+                    endLatch.countDown();
+                    return null;
+                });
+                sleep(WAIT_MILLIS, () -> {
+                    startLatch.countDown();
+                    return null;
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Failure: ", expected);
             }
+            return null;
         });
         awaitOnLatch(endLatch);
     }
@@ -188,48 +148,33 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     @Test
     public void testPessimisticReadWithPessimisticWriteNoWait() throws InterruptedException {
         LOGGER.info("Test PessimisticReadWithPessimisticWriteNoWait");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    Product product = (Product) session.get(Product.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_READ acquired");
+        doInTransaction(session -> {
+            try {
+                Product product = (Product) session.get(Product.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
+                LOGGER.info("PESSIMISTIC_READ acquired");
 
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    awaitOnLatch(startLatch);
-                                    Product _product = (Product) _session.get(Product.class, 1L);
-                                    _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(_product);
-                                    LOGGER.info("PESSIMISTIC_WRITE acquired");
-                                    return null;
-                                }
-                            });
-                            return null;
-                        }
-                    }, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            endLatch.countDown();
-                            return null;
-                        }
+                executeNoWait(() -> {
+                    doInTransaction(_session -> {
+                        awaitOnLatch(startLatch);
+                        Product _product = (Product) _session.get(Product.class, 1L);
+                        _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(_product);
+                        LOGGER.info("PESSIMISTIC_WRITE acquired");
+                        return null;
                     });
-                    sleep(WAIT_MILLIS, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            startLatch.countDown();
-                            return null;
-                        }
-                    });
-                } catch (StaleObjectStateException expected) {
-                    LOGGER.info("Failure: ", expected);
-                }
-                return null;
+                    return null;
+                }, () -> {
+                    endLatch.countDown();
+                    return null;
+                });
+                sleep(WAIT_MILLIS, () -> {
+                    startLatch.countDown();
+                    return null;
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Failure: ", expected);
             }
+            return null;
         });
         awaitOnLatch(endLatch);
     }
@@ -237,48 +182,33 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     @Test
     public void testPessimisticWriteBlocksPessimisticWrite() throws InterruptedException {
         LOGGER.info("Test testPessimisticWriteBlocksPessimisticWrite");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    Product product = (Product) session.get(Product.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
-                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+        doInTransaction(session -> {
+            try {
+                Product product = (Product) session.get(Product.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
+                LOGGER.info("PESSIMISTIC_WRITE acquired");
 
-                    executeNoWait(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    awaitOnLatch(startLatch);
-                                    Product _product = (Product) _session.get(Product.class, 1L);
-                                    _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(_product);
-                                    LOGGER.info("PESSIMISTIC_WRITE acquired");
-                                    return null;
-                                }
-                            });
-                            return null;
-                        }
-                    }, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            endLatch.countDown();
-                            return null;
-                        }
+                executeNoWait(() -> {
+                    doInTransaction(_session -> {
+                        awaitOnLatch(startLatch);
+                        Product _product = (Product) _session.get(Product.class, 1L);
+                        _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(_product);
+                        LOGGER.info("PESSIMISTIC_WRITE acquired");
+                        return null;
                     });
-                    sleep(WAIT_MILLIS, new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            startLatch.countDown();
-                            return null;
-                        }
-                    });
-                } catch (StaleObjectStateException expected) {
-                    LOGGER.info("Failure: ", expected);
-                }
-                return null;
+                    return null;
+                }, () -> {
+                    endLatch.countDown();
+                    return null;
+                });
+                sleep(WAIT_MILLIS, () -> {
+                    startLatch.countDown();
+                    return null;
+                });
+            } catch (StaleObjectStateException expected) {
+                LOGGER.info("Failure: ", expected);
             }
+            return null;
         });
         awaitOnLatch(endLatch);
     }
