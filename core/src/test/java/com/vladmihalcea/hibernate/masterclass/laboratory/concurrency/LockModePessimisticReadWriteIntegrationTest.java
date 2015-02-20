@@ -234,6 +234,55 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
         awaitOnLatch(endLatch);
     }
 
+    @Test
+    public void testPessimisticWriteBlocksPessimisticWrite() throws InterruptedException {
+        LOGGER.info("Test testPessimisticWriteBlocksPessimisticWrite");
+        doInTransaction(new TransactionCallable<Void>() {
+            @Override
+            public Void execute(Session session) {
+                try {
+                    Product product = (Product) session.get(Product.class, 1L);
+                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
+                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+
+                    executeNoWait(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            doInTransaction(new TransactionCallable<Void>() {
+                                @Override
+                                public Void execute(Session _session) {
+                                    awaitOnLatch(startLatch);
+                                    Product _product = (Product) _session.get(Product.class, 1L);
+                                    _session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(_product);
+                                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+                                    return null;
+                                }
+                            });
+                            return null;
+                        }
+                    }, new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            endLatch.countDown();
+                            return null;
+                        }
+                    });
+                    sleep(WAIT_MILLIS, new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            startLatch.countDown();
+                            return null;
+                        }
+                    });
+                } catch (StaleObjectStateException expected) {
+                    LOGGER.info("Failure: ", expected);
+                }
+                return null;
+            }
+        });
+        awaitOnLatch(endLatch);
+    }
+
     /**
      * Product - Product
      *
