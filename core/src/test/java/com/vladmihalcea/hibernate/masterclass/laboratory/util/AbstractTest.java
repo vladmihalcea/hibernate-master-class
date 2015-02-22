@@ -23,29 +23,38 @@ import java.util.concurrent.*;
 
 public abstract class AbstractTest {
 
+    static {
+        Thread.currentThread().setName("Alice");
+    }
+
     protected enum LockType {
         LOCKS,
         MVLOCKS,
         MVCC
     }
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(1);
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
+        Thread bob = new Thread(r);
+        bob.setName("Bob");
+        return bob;
+    });
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     @FunctionalInterface
-    protected static interface TransactionCallable<T> {
+    protected static interface SessionCallable<T> {
 
         T execute(Session session);
+
     }
 
-    protected static abstract class TransactionLifecycleCallable<T> implements TransactionCallable<T> {
-
-        protected void beforeTransactionCompletion() {
+    @FunctionalInterface
+    protected static interface TransactionCallable<T> extends SessionCallable<T> {
+        default void beforeTransactionCompletion() {
 
         }
 
-        protected void afterTransactionCompletion() {
+        default void afterTransactionCompletion() {
 
         }
     }
@@ -132,13 +141,9 @@ public abstract class AbstractTest {
         T result = null;
         Session session = null;
         Transaction txn = null;
-        TransactionLifecycleCallable lifecycleCallable = (callable instanceof TransactionLifecycleCallable)
-                ? (TransactionLifecycleCallable) callable : null;
         try {
             session = sf.openSession();
-            if (lifecycleCallable != null) {
-                lifecycleCallable.beforeTransactionCompletion();
-            }
+            callable.beforeTransactionCompletion();
             txn = session.beginTransaction();
 
             result = callable.execute(session);
@@ -147,9 +152,7 @@ public abstract class AbstractTest {
             if ( txn != null && txn.isActive() ) txn.rollback();
             throw e;
         } finally {
-            if (lifecycleCallable != null) {
-                lifecycleCallable.afterTransactionCompletion();
-            }
+            callable.afterTransactionCompletion();
             if (session != null) {
                 session.close();
             }
@@ -174,17 +177,18 @@ public abstract class AbstractTest {
 
     protected <T> void executeNoWait(Callable<T> callable, final Callable<Void> completionCallback) {
         final Future<T> future = executorService.submit(callable);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!future.isDone()) {
-                    sleep(100);
-                }
+        new Thread(() -> {
+            while (!future.isDone()) {
                 try {
-                    completionCallback.call();
+                    Thread.sleep(100);
                 } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
+            }
+            try {
+                completionCallback.call();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             }
         }).start();
     }
