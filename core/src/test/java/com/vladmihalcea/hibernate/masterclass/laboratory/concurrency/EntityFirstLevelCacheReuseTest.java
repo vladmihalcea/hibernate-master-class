@@ -27,14 +27,12 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
 
     @Test
     public void testOptimisticLocking() {
-
         doInTransaction(session -> {
             Product product = new Product();
             product.setId(1L);
             product.setQuantity(7L);
             session.persist(product);
         });
-
         doInTransaction(session -> {
             final Product product = (Product) session.get(Product.class, 1L);
             try {
@@ -45,11 +43,16 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
                 }));
                 Product reloadedProduct = (Product) session.createQuery("from product").uniqueResult();
                 assertEquals(7L, reloadedProduct.getQuantity());
-                assertEquals(6L, ((Number) session.createSQLQuery("select quantity from product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
+                assertEquals(6L,
+                        ((Number) session
+                                .createSQLQuery("select quantity from product where id = :id")
+                                .setParameter("id", product.getId())
+                                .uniqueResult())
+                                .longValue()
+                );
             } catch (Exception e) {
                 fail(e.getMessage());
             }
-            return null;
         });
     }
 

@@ -67,8 +67,5 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
         endLatch.await();
     }
 
-    protected void lockUpgrade(Session session, Product product) {
-
-    }
-
+    protected void lockUpgrade(Session session, Product product) {}
 }

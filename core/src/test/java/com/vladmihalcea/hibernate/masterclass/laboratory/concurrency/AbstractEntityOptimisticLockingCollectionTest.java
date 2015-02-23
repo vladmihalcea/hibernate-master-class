@@ -3,8 +3,6 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -49,8 +47,6 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
     }
 
     protected void simulateConcurrentTransactions(final boolean shouldIncrementParentVersion) {
-        final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
         doInTransaction(session -> {
             try {
                 P post = postClass.newInstance();
@@ -63,8 +59,7 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
         });
 
         doInTransaction(session -> {
-            final P post = (P)
-                    session.get(postClass, 1L);
+            final P post = (P) session.get(postClass, 1L);
             try {
                 executeSync(() -> {
                     doInTransaction(_session -> {
