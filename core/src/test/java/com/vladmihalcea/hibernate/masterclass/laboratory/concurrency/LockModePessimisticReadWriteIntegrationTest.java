@@ -74,7 +74,7 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
 
     @Test
     public void testPessimisticReadDoesNotBlockPessimisticRead() throws InterruptedException {
-        LOGGER.info("Test testPessimisticReadDoesNotBlockPessimisticRead");
+        LOGGER.info("Test PESSIMISTIC_READ doesn't block PESSIMISTIC_READ");
         testPessimisticLocking(
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
@@ -83,28 +83,13 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
                     LOGGER.info("PESSIMISTIC_READ acquired");
-                }
-        );
-    }
-
-    @Test
-    public void testPessimisticReadBlocksPessimisticWrite() throws InterruptedException {
-        LOGGER.info("Test PessimisticReadBlocksPessimisticWrite");
-        testPessimisticLocking(
-                (session, product) -> {
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_READ acquired");
-                },
-                (session, product) -> {
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
-                    LOGGER.info("PESSIMISTIC_WRITE acquired");
                 }
         );
     }
 
     @Test
     public void testPessimisticReadBlocksUpdate() throws InterruptedException {
-        LOGGER.info("Test testPessimisticReadBlocksUpdate");
+        LOGGER.info("Test PESSIMISTIC_READ blocks UPDATE");
         testPessimisticLocking(
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
@@ -120,7 +105,7 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
 
     @Test
     public void testPessimisticReadWithPessimisticWriteNoWait() throws InterruptedException {
-        LOGGER.info("Test PessimisticReadWithPessimisticWriteNoWait");
+        LOGGER.info("Test PESSIMISTIC_READ blocks PESSIMISTIC_WRITE, NO WAIT fails fast");
         testPessimisticLocking(
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
@@ -134,15 +119,30 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
     }
 
     @Test
-    public void testPessimisticWriteBlocksPessimisticWrite() throws InterruptedException {
-        LOGGER.info("Test testPessimisticWriteBlocksPessimisticWrite");
+    public void testPessimisticWriteBlocksPessimisticRead() throws InterruptedException {
+        LOGGER.info("Test PESSIMISTIC_WRITE blocks PESSIMISTIC_READ");
         testPessimisticLocking(
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
                     LOGGER.info("PESSIMISTIC_WRITE acquired");
                 },
                 (session, product) -> {
-                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setTimeOut(Session.LockRequest.PESSIMISTIC_NO_WAIT).lock(product);
+                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
+                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+                }
+        );
+    }
+
+    @Test
+    public void testPessimisticWriteBlocksPessimisticWrite() throws InterruptedException {
+        LOGGER.info("Test PESSIMISTIC_WRITE blocks PESSIMISTIC_WRITE");
+        testPessimisticLocking(
+                (session, product) -> {
+                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
+                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+                },
+                (session, product) -> {
+                    session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(product);
                     LOGGER.info("PESSIMISTIC_WRITE acquired");
                 }
         );
