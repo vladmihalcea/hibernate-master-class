@@ -2,13 +2,9 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import org.hibernate.*;
 import org.hibernate.dialect.lock.OptimisticEntityLockException;
-import org.hibernate.jdbc.Work;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,22 +26,15 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
                 if(ready.get()) {
                     LOGGER.info("Overwrite product price asynchronously");
 
-                    executeAsync(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            Session _session = getSessionFactory().openSession();
-                            _session.doWork(new Work() {
-                                @Override
-                                public void execute(Connection connection) throws SQLException {
-                                    try (PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
-                                        ps.executeUpdate();
-                                    }
-                                }
-                            });
-                            _session.close();
-                            endLatch.countDown();
-                            return null;
-                        }
+                    executeAsync(() -> {
+                        Session _session = getSessionFactory().openSession();
+                        _session.doWork(connection -> {
+                            try (PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
+                                ps.executeUpdate();
+                            }
+                        });
+                        _session.close();
+                        endLatch.countDown();
                     });
                     try {
                         LOGGER.info("Wait 500 ms for lock to be acquired!");
@@ -61,19 +50,15 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
     @Test
     public void testExplicitOptimisticLocking() throws InterruptedException {
         try {
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(Session session) {
-                    try {
-                        final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
-                        OrderLine orderLine = new OrderLine(product);
-                        session.persist(orderLine);
-                        lockUpgrade(session, product);
-                        ready.set(true);
-                    } catch (Exception e) {
-                        throw new IllegalStateException(e);
-                    }
-                    return null;
+            doInTransaction(session -> {
+                try {
+                    final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
+                    OrderLine orderLine = new OrderLine(product);
+                    session.persist(orderLine);
+                    lockUpgrade(session, product);
+                    ready.set(true);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
                 }
             });
         } catch (OptimisticEntityLockException expected) {

@@ -1,14 +1,16 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OptimisticLockType;
 import org.hibernate.annotations.OptimisticLocking;
 import org.junit.Test;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 
@@ -28,18 +30,14 @@ public class OptimisticLockingOneRootDirtyVersioningTest extends AbstractTest {
         @Override
         public void run() {
             try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            product.setQuantity(6L);
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
+                doInTransaction(session -> {
+                    try {
+                        Product product = (Product) session.get(Product.class, 1L);
+                        loadProductsLatch.countDown();
+                        loadProductsLatch.await();
+                        product.setQuantity(6L);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
                     }
                 });
             } catch (StaleObjectStateException expected) {
@@ -54,19 +52,15 @@ public class OptimisticLockingOneRootDirtyVersioningTest extends AbstractTest {
         @Override
         public void run() {
             try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            aliceLatch.await();
-                            product.incrementLikes();
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
+                doInTransaction(session -> {
+                    try {
+                        Product product = (Product) session.get(Product.class, 1L);
+                        loadProductsLatch.countDown();
+                        loadProductsLatch.await();
+                        aliceLatch.await();
+                        product.incrementLikes();
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
                     }
                 });
             } catch (StaleObjectStateException expected) {
@@ -80,19 +74,15 @@ public class OptimisticLockingOneRootDirtyVersioningTest extends AbstractTest {
         @Override
         public void run() {
             try {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            loadProductsLatch.countDown();
-                            loadProductsLatch.await();
-                            aliceLatch.await();
-                            product.setDescription("Plasma HDTV");
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
+                doInTransaction(session -> {
+                    try {
+                        Product product = (Product) session.get(Product.class, 1L);
+                        loadProductsLatch.countDown();
+                        loadProductsLatch.await();
+                        aliceLatch.await();
+                        product.setDescription("Plasma HDTV");
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
                     }
                 });
             } catch (StaleObjectStateException expected) {
@@ -104,18 +94,14 @@ public class OptimisticLockingOneRootDirtyVersioningTest extends AbstractTest {
     @Test
     public void testOptimisticLocking() throws InterruptedException {
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Product product = new Product();
-                product.setId(1L);
-                product.setName("TV");
-                product.setDescription("Plasma TV");
-                product.setPrice(BigDecimal.valueOf(199.99));
-                product.setQuantity(7L);
-                session.persist(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            Product product = new Product();
+            product.setId(1L);
+            product.setName("TV");
+            product.setDescription("Plasma TV");
+            product.setPrice(BigDecimal.valueOf(199.99));
+            product.setQuantity(7L);
+            session.persist(product);
         });
 
         Thread alice = new Thread(new AliceTransaction());

@@ -3,7 +3,6 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
-import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
 import org.hibernate.annotations.Immutable;
 import org.junit.Before;
@@ -12,7 +11,6 @@ import org.junit.Test;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import static org.junit.Assert.fail;
 
@@ -35,31 +33,23 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
     @Before
     public void init() {
         super.init();
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-            Repository repository = new Repository("Hibernate-Master-Class");
-            session.persist(repository);
-            session.flush();
-            return null;
-            }
+        doInTransaction(session -> {
+        Repository repository = new Repository("Hibernate-Master-Class");
+        session.persist(repository);
+        session.flush();
         });
     }
 
     @Test
     public void testOptimisticForceIncrementLocking() throws InterruptedException {
         LOGGER.info("Test Single OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Repository repository = (Repository) session.get(Repository.class, 1L);
-                session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
-                Commit commit = new Commit(repository);
-                commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-                commit.getChanges().add(new Change("web.xml", "17c17..."));
-                session.persist(commit);
-                return null;
-            }
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
+            Commit commit = new Commit(repository);
+            commit.getChanges().add(new Change("README.txt", "0a1,5..."));
+            commit.getChanges().add(new Change("web.xml", "17c17..."));
+            session.persist(commit);
         });
     }
 
@@ -67,35 +57,24 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
     public void testConcurrentOptimisticForceIncrementLocking() throws InterruptedException {
         LOGGER.info("Test Concurrent OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
         try {
-            doInTransaction(new TransactionCallable<Void>() {
-                @Override
-                public Void execute(Session session) {
-                    Repository repository = (Repository) session.get(Repository.class, 1L);
-                    session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
+            doInTransaction(session -> {
+                Repository repository = (Repository) session.get(Repository.class, 1L);
+                session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
 
-                    executeSync(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            return doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    Repository _repository = (Repository) _session.get(Repository.class, 1L);
-                                    _session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(_repository);
-                                    Commit _commit = new Commit(_repository);
-                                    _commit.getChanges().add(new Change("index.html", "0a1,2..."));
-                                    _session.persist(_commit);
-                                    return null;
-                                }
-                            });
-                        }
+                executeSync(() -> {
+                    doInTransaction(_session -> {
+                        Repository _repository = (Repository) _session.get(Repository.class, 1L);
+                        _session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(_repository);
+                        Commit _commit = new Commit(_repository);
+                        _commit.getChanges().add(new Change("index.html", "0a1,2..."));
+                        _session.persist(_commit);
                     });
+                });
 
-                    Commit commit = new Commit(repository);
-                    commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-                    commit.getChanges().add(new Change("web.xml", "17c17..."));
-                    session.persist(commit);
-                    return null;
-                }
+                Commit commit = new Commit(repository);
+                commit.getChanges().add(new Change("README.txt", "0a1,5..."));
+                commit.getChanges().add(new Change("web.xml", "17c17..."));
+                session.persist(commit);
             });
             fail("Should have thrown StaleObjectStateException!");
         } catch (StaleObjectStateException expected) {

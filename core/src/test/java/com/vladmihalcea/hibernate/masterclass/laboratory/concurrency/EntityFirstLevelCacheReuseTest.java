@@ -28,44 +28,28 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
     @Test
     public void testOptimisticLocking() {
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Product product = new Product();
-                product.setId(1L);
-                product.setQuantity(7L);
-                session.persist(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            Product product = new Product();
+            product.setId(1L);
+            product.setQuantity(7L);
+            session.persist(product);
         });
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                final Product product = (Product) session.get(Product.class, 1L);
-                try {
-                    executeSync(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            return doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
-                                    assertNotSame(product, otherThreadProduct);
-                                    otherThreadProduct.setQuantity(6L);
-                                    return null;
-                                }
-                            });
-                        }
-                    });
-                    Product reloadedProduct = (Product) session.createQuery("from product").uniqueResult();
-                    assertEquals(7L, reloadedProduct.getQuantity());
-                    assertEquals(6L, ((Number) session.createSQLQuery("select quantity from product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
-                } catch (Exception e) {
-                    fail(e.getMessage());
-                }
-                return null;
+        doInTransaction(session -> {
+            final Product product = (Product) session.get(Product.class, 1L);
+            try {
+                executeSync( () -> doInTransaction(_session -> {
+                    Product otherThreadProduct = (Product) _session.get(Product.class, 1L);
+                    assertNotSame(product, otherThreadProduct);
+                    otherThreadProduct.setQuantity(6L);
+                }));
+                Product reloadedProduct = (Product) session.createQuery("from product").uniqueResult();
+                assertEquals(7L, reloadedProduct.getQuantity());
+                assertEquals(6L, ((Number) session.createSQLQuery("select quantity from product where id = :id").setParameter("id", product.getId()).uniqueResult()).longValue());
+            } catch (Exception e) {
+                fail(e.getMessage());
             }
+            return null;
         });
     }
 

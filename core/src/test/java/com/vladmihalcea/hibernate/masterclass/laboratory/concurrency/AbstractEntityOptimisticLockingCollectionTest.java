@@ -1,10 +1,8 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.Session;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -53,62 +51,47 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
     protected void simulateConcurrentTransactions(final boolean shouldIncrementParentVersion) {
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                try {
-                    P post = postClass.newInstance();
-                    post.setId(1L);
-                    post.setName("Hibernate training");
-                    session.persist(post);
-                    return null;
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(e);
-                }
+        doInTransaction(session -> {
+            try {
+                P post = postClass.newInstance();
+                post.setId(1L);
+                post.setName("Hibernate training");
+                session.persist(post);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
             }
         });
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(final Session session) {
-                final P post = (P)
-                        session.get(postClass, 1L);
-                try {
-                    executeSync(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            return doInTransaction(new TransactionCallable<Void>() {
-                                @Override
-                                public Void execute(Session _session) {
-                                    try {
-                                        P otherThreadPost = (P) _session.get(postClass, 1L);
-                                        int loadTimeVersion = otherThreadPost.getVersion();
-                                        assertNotSame(post, otherThreadPost);
-                                        assertEquals(0L, otherThreadPost.getVersion());
-                                        C comment = commentClass.newInstance();
-                                        comment.setReview("Good post!");
-                                        otherThreadPost.addComment(comment);
-                                        _session.flush();
-                                        if (shouldIncrementParentVersion) {
-                                            assertEquals(otherThreadPost.getVersion(), loadTimeVersion + 1);
-                                        } else {
-                                            assertEquals(otherThreadPost.getVersion(), loadTimeVersion);
-                                        }
-                                        return null;
-                                    } catch (Exception e) {
-                                        throw new IllegalArgumentException(e);
-                                    }
-                                }
-                            });
+        doInTransaction(session -> {
+            final P post = (P)
+                    session.get(postClass, 1L);
+            try {
+                executeSync(() -> {
+                    doInTransaction(_session -> {
+                        try {
+                            P otherThreadPost = (P) _session.get(postClass, 1L);
+                            int loadTimeVersion = otherThreadPost.getVersion();
+                            assertNotSame(post, otherThreadPost);
+                            assertEquals(0L, otherThreadPost.getVersion());
+                            C comment = commentClass.newInstance();
+                            comment.setReview("Good post!");
+                            otherThreadPost.addComment(comment);
+                            _session.flush();
+                            if (shouldIncrementParentVersion) {
+                                assertEquals(otherThreadPost.getVersion(), loadTimeVersion + 1);
+                            } else {
+                                assertEquals(otherThreadPost.getVersion(), loadTimeVersion);
+                            }
+                        } catch (Exception e) {
+                            throw new IllegalArgumentException(e);
                         }
                     });
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(e);
-                }
-                post.setName("Hibernate Master Class");
-                session.flush();
-                return null;
+                });
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
             }
+            post.setName("Hibernate Master Class");
+            session.flush();
         });
     }
 }

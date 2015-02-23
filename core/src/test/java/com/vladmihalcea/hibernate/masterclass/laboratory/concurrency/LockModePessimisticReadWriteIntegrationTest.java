@@ -47,35 +47,27 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
             product.setDescription("USB Flash Drive");
             product.setPrice(BigDecimal.valueOf(12.99));
             session.persist(product);
-            return null;
         });
     }
 
-    private void testPessimisticLocking(ProductLockRequestCallable aliceLockRequestCallable, ProductLockRequestCallable bobProductLockRequestCallable) {
+    private void testPessimisticLocking(ProductLockRequestCallable primaryLockRequestCallable, ProductLockRequestCallable secondaryLockRequestCallable) {
         doInTransaction(session -> {
             try {
                 Product product = (Product) session.get(Product.class, 1L);
-                aliceLockRequestCallable.lock(session, product);
-
+                primaryLockRequestCallable.lock(session, product);
                 executeAsync(
                         () -> {
                             doInTransaction(_session -> {
                                 Product _product = (Product) _session.get(Product.class, 1L);
-                                bobProductLockRequestCallable.lock(_session, _product);
-                                return null;
+                                secondaryLockRequestCallable.lock(_session, _product);
                             });
-                            return null;
                         },
-                        () -> {
-                            endLatch.countDown();
-                            return null;
-                        }
+                        endLatch::countDown
                 );
                 sleep(WAIT_MILLIS);
-            } catch (StaleObjectStateException expected) {
-                LOGGER.info("Failure: ", expected);
+            } catch (StaleObjectStateException e) {
+                LOGGER.info("Optimistic locking failure: ", e);
             }
-            return null;
         });
         awaitOnLatch(endLatch);
     }

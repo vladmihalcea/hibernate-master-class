@@ -2,7 +2,6 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hamcrest.core.IsInstanceOf;
-import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,31 +28,27 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
     private Product originalProduct;
 
     @Before
-    public void addProduct(){
-        originalProduct = doInTransaction(new TransactionCallable<Product>() {
-            @Override
-            public Product execute(Session session) {
-                Product product = Product.newInstance();
-                product.setId(1L);
-                product.setName("TV");
-                product.setDescription("Plasma TV");
-                product.setPrice(BigDecimal.valueOf(199.99));
-                product.setQuantity(7L);
-                session.persist(product);
-                return product;
-            }
+    public void addProduct() {
+        originalProduct = doInTransaction(session -> {
+            Product product = Product.newInstance();
+            product.setId(1L);
+            product.setName("TV");
+            product.setDescription("Plasma TV");
+            product.setPrice(BigDecimal.valueOf(199.99));
+            product.setQuantity(7L);
+            session.persist(product);
+            return product;
         });
     }
-
-
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static interface DoWithProduct{
+    static interface DoWithProduct {
         void with(Product product);
     }
-    public static class ModifyQuantity implements  DoWithProduct{
+
+    public static class ModifyQuantity implements DoWithProduct {
         private final Long newQuantity;
 
         public ModifyQuantity(Long newQuantity) {
@@ -65,7 +60,7 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
         }
     }
 
-    public static class ModifyDescription implements  DoWithProduct{
+    public static class ModifyDescription implements DoWithProduct {
         private final String newDesc;
 
         public ModifyDescription(String newDesc) {
@@ -78,16 +73,14 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
         }
     }
 
-
-    public static class IncLikes implements DoWithProduct{
+    public static class IncLikes implements DoWithProduct {
 
         public void with(Product product) {
             product.incrementLikes();
         }
     }
 
-
-    public class TransactionTemplate implements Callable<Void> {
+    public class TransactionTemplate implements VoidCallable {
         private final DoWithProduct doWithProduct;
         private CyclicBarrier barrier;
 
@@ -96,35 +89,25 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
             this.barrier = barrier;
         }
 
-        public Void call() {
-                doInTransaction(new TransactionCallable<Void>() {
-                    @Override
-                    public Void execute(Session session) {
-                        try {
-                            Product product = (Product) session.get(Product.class, 1L);
-                            barrier.await();
-                            doWithProduct.with(product);
-                            return null;
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        } catch (BrokenBarrierException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }
-                });
-            return null;
+        public void execute() {
+            doInTransaction(session -> {
+                try {
+                    Product product = (Product) session.get(Product.class, 1L);
+                    barrier.await();
+                    doWithProduct.with(product);
+                    return null;
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
         }
     }
 
 
     public Product getProductById(final long productId) {
-        return doInTransaction(new TransactionCallable<Product>() {
-            @Override
-            public Product execute(Session session) {
-                return (Product) session.get(Product.class, productId);
-            }
-        });
-}
+        return doInTransaction(session -> (Product) session.get(Product.class, productId));
+    }
+
     @Test
     public void canConcurrentlyModifyEachOfSubEntities() throws InterruptedException, ExecutionException {
         executeOperations(
@@ -132,7 +115,7 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
                 new ModifyDescription("Plasma HDTV"),
                 new ModifyQuantity(1000L));
 
-        Product modifiedProduct= getProductById(originalProduct.getId());
+        Product modifiedProduct = getProductById(originalProduct.getId());
 
         assertThat(modifiedProduct.getDescription(), equalTo("Plasma HDTV"));
         assertThat(modifiedProduct.getQuantity(), equalTo(1000L));
@@ -140,16 +123,15 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
     }
 
 
-
     @Test
     public void optimisticLockingViolationForConcurrentStockModifications() throws InterruptedException, ExecutionException {
         expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
 
         executeOperations(
-                            new IncLikes(),
-                            new ModifyQuantity(100L),
-                            new ModifyDescription("Plasma HDTV"),
-                            new ModifyQuantity(1000L));
+                new IncLikes(),
+                new ModifyQuantity(100L),
+                new ModifyDescription("Plasma HDTV"),
+                new ModifyQuantity(1000L));
     }
 
     @Test
@@ -157,11 +139,10 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
         expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
 
         executeOperations(
-                            new IncLikes(),
-                            new ModifyDescription("LCD TV"),
-                            new ModifyDescription("Plasma HDTV"),
-                            new ModifyQuantity(1L));
-
+                new IncLikes(),
+                new ModifyDescription("LCD TV"),
+                new ModifyDescription("Plasma HDTV"),
+                new ModifyQuantity(1L));
 
 
     }
@@ -172,10 +153,10 @@ public class OptimisticLockingOneRootEntityMultipleVersionsTest extends Abstract
         expectedException.expectCause(IsInstanceOf.<Throwable>instanceOf(StaleObjectStateException.class));
 
         executeOperations(
-                            new IncLikes(),
-                            new IncLikes(),
-                            new ModifyDescription("Plasma HDTV"),
-                            new ModifyQuantity(2L));
+                new IncLikes(),
+                new IncLikes(),
+                new ModifyDescription("Plasma HDTV"),
+                new ModifyQuantity(2L));
 
     }
 

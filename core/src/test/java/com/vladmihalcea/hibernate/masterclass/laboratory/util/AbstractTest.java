@@ -42,10 +42,24 @@ public abstract class AbstractTest {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     @FunctionalInterface
+    protected static interface VoidCallable extends Callable<Void> {
+
+        void execute();
+
+        default Void call() throws Exception {
+            execute();
+            return null;
+        }
+    }
+
+    @FunctionalInterface
     protected static interface SessionCallable<T> {
-
         T execute(Session session);
+    }
 
+    @FunctionalInterface
+    protected static interface SessionVoidCallable {
+        void execute(Session session);
     }
 
     @FunctionalInterface
@@ -58,6 +72,18 @@ public abstract class AbstractTest {
 
         }
     }
+
+    @FunctionalInterface
+    protected static interface TransactionVoidCallable extends SessionVoidCallable {
+        default void beforeTransactionCompletion() {
+
+        }
+
+        default void afterTransactionCompletion() {
+
+        }
+    }
+
 
     private SessionFactory sf;
 
@@ -160,14 +186,35 @@ public abstract class AbstractTest {
         return result;
     }
 
-    protected  <T> void executeSync(Callable<T> callable) {
+    protected void doInTransaction(TransactionVoidCallable callable) {
+        Session session = null;
+        Transaction txn = null;
+        try {
+            session = sf.openSession();
+            callable.beforeTransactionCompletion();
+            txn = session.beginTransaction();
+
+            callable.execute(session);
+            txn.commit();
+        } catch (RuntimeException e) {
+            if ( txn != null && txn.isActive() ) txn.rollback();
+            throw e;
+        } finally {
+            callable.afterTransactionCompletion();
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
+    protected void executeSync(VoidCallable callable) {
         executeSync(Collections.singleton(callable));
     }
 
-    protected  <T> void executeSync(Collection<Callable<T>> callables) {
+    protected void executeSync(Collection<VoidCallable> callables) {
         try {
-            List<Future<T>> futures = executorService.invokeAll(callables);
-            for (Future<T> future : futures) {
+            List<Future<Void>> futures = executorService.invokeAll(callables);
+            for (Future<Void> future : futures) {
                 future.get();
             }
         } catch (InterruptedException | ExecutionException e) {
@@ -175,8 +222,8 @@ public abstract class AbstractTest {
         }
     }
 
-    protected <T> void executeAsync(Callable<T> callable, final Callable<Void> completionCallback) {
-        final Future<T> future = executorService.submit(callable);
+    protected <T> void executeAsync(Runnable callable, final Runnable completionCallback) {
+        final Future future = executorService.submit(callable);
         new Thread(() -> {
             while (!future.isDone()) {
                 try {
@@ -186,14 +233,14 @@ public abstract class AbstractTest {
                 }
             }
             try {
-                completionCallback.call();
+                completionCallback.run();
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }).start();
     }
 
-    protected <T> Future<T> executeAsync(Callable<T> callable) {
+    protected Future<?> executeAsync(Runnable callable) {
         return executorService.submit(callable);
     }
 

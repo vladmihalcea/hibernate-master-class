@@ -26,69 +26,50 @@ public class OptimisticLockingVersionlessTest extends AbstractTest {
     @Before
     public void init() {
         super.init();
-        product = doInTransaction(new TransactionCallable<Product>() {
-            @Override
-            public Product execute(Session session) {
-                session.createQuery("delete from Product").executeUpdate();
-                Product product = new Product();
-                product.setId(1L);
-                product.setName("TV");
-                product.setDescription("Plasma TV");
-                product.setPrice(BigDecimal.valueOf(199.99));
-                product.setQuantity(7L);
-                session.persist(product);
-                return product;
-            }
+        product = doInTransaction(session -> {
+            session.createQuery("delete from Product").executeUpdate();
+            Product _product = new Product();
+            _product.setId(1L);
+            _product.setName("TV");
+            _product.setDescription("Plasma TV");
+            _product.setPrice(BigDecimal.valueOf(199.99));
+            _product.setQuantity(7L);
+            session.persist(_product);
+            return _product;
         });
     }
 
     @Test
     public void testVersionlessOptimisticLockingWhenMerging() {
 
-        doInTransaction(new TransactionCallable<Object>() {
-            @Override
-            public Object execute(Session session) {
-                Product _product = (Product) session.get(Product.class, 1L);
-                _product.setPrice(BigDecimal.valueOf(21.22));
-                LOGGER.info("Updating product price to {}", _product.getPrice());
-                return null;
-            }
+        doInTransaction(session -> {
+            Product _product = (Product) session.get(Product.class, 1L);
+            _product.setPrice(BigDecimal.valueOf(21.22));
+            LOGGER.info("Updating product price to {}", _product.getPrice());
         });
 
         product.setPrice(BigDecimal.ONE);
-        doInTransaction(new TransactionCallable<Object>() {
-            @Override
-            public Object execute(Session session) {
-                LOGGER.info("Merging product, price to be saved is {}", product.getPrice());
-                session.merge(product);
-                session.flush();
-                return null;
-            }
+        doInTransaction(session -> {
+            LOGGER.info("Merging product, price to be saved is {}", product.getPrice());
+            session.merge(product);
+            session.flush();
         });
     }
 
     @Test
     public void testVersionlessOptimisticLockingWhenReattaching() {
 
-        doInTransaction(new TransactionCallable<Object>() {
-            @Override
-            public Object execute(Session session) {
-                Product _product = (Product) session.get(Product.class, 1L);
-                _product.setPrice(BigDecimal.valueOf(21.22));
-                LOGGER.info("Updating product price to {}", _product.getPrice());
-                return null;
-            }
+        doInTransaction(session -> {
+            Product _product = (Product) session.get(Product.class, 1L);
+            _product.setPrice(BigDecimal.valueOf(21.22));
+            LOGGER.info("Updating product price to {}", _product.getPrice());
         });
 
         product.setPrice(BigDecimal.TEN);
-        doInTransaction(new TransactionCallable<Object>() {
-            @Override
-            public Object execute(Session session) {
-                LOGGER.info("Reattaching product, price to be saved is {}", product.getPrice());
-                session.saveOrUpdate(product);
-                session.flush();
-                return null;
-            }
+        doInTransaction(session -> {
+            LOGGER.info("Reattaching product, price to be saved is {}", product.getPrice());
+            session.saveOrUpdate(product);
+            session.flush();
         });
     }
 
