@@ -160,11 +160,11 @@ public abstract class AbstractTest {
         return result;
     }
 
-    protected  <T> void executeAndWait(Callable<T> callable) {
-        executeAndWait(Collections.singleton(callable));
+    protected  <T> void executeSync(Callable<T> callable) {
+        executeSync(Collections.singleton(callable));
     }
 
-    protected  <T> void executeAndWait(Collection<Callable<T>> callables) {
+    protected  <T> void executeSync(Collection<Callable<T>> callables) {
         try {
             List<Future<T>> futures = executorService.invokeAll(callables);
             for (Future<T> future : futures) {
@@ -175,7 +175,7 @@ public abstract class AbstractTest {
         }
     }
 
-    protected <T> void executeNoWait(Callable<T> callable, final Callable<Void> completionCallback) {
+    protected <T> void executeAsync(Callable<T> callable, final Callable<Void> completionCallback) {
         final Future<T> future = executorService.submit(callable);
         new Thread(() -> {
             while (!future.isDone()) {
@@ -193,7 +193,7 @@ public abstract class AbstractTest {
         }).start();
     }
 
-    protected <T> Future<T> executeNoWait(Callable<T> callable) {
+    protected <T> Future<T> executeAsync(Callable<T> callable) {
         return executorService.submit(callable);
     }
 

@@ -73,7 +73,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
                     Repository repository = (Repository) session.get(Repository.class, 1L);
                     session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
 
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {

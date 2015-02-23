@@ -30,14 +30,14 @@ public class LockModeOptimisticRaceConditionTest extends AbstractLockModeOptimis
                 if(ready.get()) {
                     LOGGER.info("Overwrite product price asynchronously");
 
-                    executeNoWait(new Callable<Void>() {
+                    executeAsync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             Session _session = getSessionFactory().openSession();
                             _session.doWork(new Work() {
                                 @Override
                                 public void execute(Connection connection) throws SQLException {
-                                    try(PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
+                                    try (PreparedStatement ps = connection.prepareStatement("UPDATE product set price = 14.49 WHERE id = 1")) {
                                         ps.executeUpdate();
                                     }
                                 }

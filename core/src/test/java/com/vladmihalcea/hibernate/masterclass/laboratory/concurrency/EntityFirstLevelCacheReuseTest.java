@@ -8,8 +8,6 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 
@@ -46,7 +44,7 @@ public class EntityFirstLevelCacheReuseTest extends AbstractTest {
             public Void execute(Session session) {
                 final Product product = (Product) session.get(Product.class, 1L);
                 try {
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {

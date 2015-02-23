@@ -6,7 +6,6 @@ import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.StaleObjectStateException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.persistence.Entity;
@@ -58,7 +57,7 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegra
                 Product product = (Product) session.get(Product.class, 1L);
                 aliceLockRequestCallable.lock(session, product);
 
-                executeNoWait(
+                executeAsync(
                         () -> {
                             doInTransaction(_session -> {
                                 Product _product = (Product) _session.get(Product.class, 1L);

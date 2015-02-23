@@ -1,14 +1,11 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.dialect.lock.OptimisticEntityLockException;
-import org.junit.Before;
 import org.junit.Test;
 
-import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.concurrent.Callable;
 
@@ -30,7 +27,7 @@ public class LockModeOptimisticTest extends AbstractLockModeOptimisticTest {
             public Void execute(Session session) {
                 final Product product = (Product) session.get(Product.class, 1L);
                 try {
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {
@@ -63,7 +60,7 @@ public class LockModeOptimisticTest extends AbstractLockModeOptimisticTest {
                 public Void execute(Session session) {
                     final Product product = (Product) session.get(Product.class, 1L, new LockOptions(LockMode.OPTIMISTIC));
 
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {

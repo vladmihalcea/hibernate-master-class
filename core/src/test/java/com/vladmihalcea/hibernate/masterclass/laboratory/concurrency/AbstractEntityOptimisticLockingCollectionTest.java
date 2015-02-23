@@ -74,7 +74,7 @@ public abstract class AbstractEntityOptimisticLockingCollectionTest<P extends Ab
                 final P post = (P)
                         session.get(postClass, 1L);
                 try {
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {

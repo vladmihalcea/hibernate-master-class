@@ -77,7 +77,7 @@ public class LockModePessimisticForceIncrementTest extends AbstractTest {
                     Repository repository = (Repository) session.get(Repository.class, 1L);
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_FORCE_INCREMENT)).lock(repository);
 
-                    executeNoWait(new Callable<Void>() {
+                    executeAsync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {
@@ -123,7 +123,7 @@ public class LockModePessimisticForceIncrementTest extends AbstractTest {
                 try {
                     Repository repository = (Repository) session.get(Repository.class, 1L);
 
-                    executeAndWait(new Callable<Void>() {
+                    executeSync(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
                             return doInTransaction(new TransactionCallable<Void>() {
