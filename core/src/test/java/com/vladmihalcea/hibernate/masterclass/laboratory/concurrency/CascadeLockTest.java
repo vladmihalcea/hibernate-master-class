@@ -1,9 +1,9 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
+import org.hibernate.Session;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 
 /**
  * CascadeLockTest - Test to check CascadeType.LOCK
@@ -19,8 +22,6 @@ import java.util.List;
  * @author Vlad Mihalcea
  */
 public class CascadeLockTest extends AbstractTest {
-
-    private Post post;
 
     @Override
     protected Class<?>[] entities() {
@@ -34,7 +35,7 @@ public class CascadeLockTest extends AbstractTest {
     @Before
     public void init() {
         super.init();
-        this.post = doInTransaction(session -> {
+        doInTransaction(session -> {
             Post post = new Post();
             post.setName("Hibernate Master Class");
 
@@ -51,8 +52,6 @@ public class CascadeLockTest extends AbstractTest {
             post.addComment(comment2);
 
             session.persist(post);
-
-            return post;
         });
     }
 
@@ -75,8 +74,10 @@ public class CascadeLockTest extends AbstractTest {
     @Test
     public void testCascadeLockOnDetachedEntity() throws InterruptedException {
         LOGGER.info("Test lock cascade for detached entity");
+        Post _post = doInTransaction(session -> (Post) session.get(Post.class, 1L));
         doInTransaction(session -> {
-            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setScope(true).lock(post);
+            assertFalse(session.contains(_post));
+            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(_post);
         });
     }
 
