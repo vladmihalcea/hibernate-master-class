@@ -1,17 +1,11 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.cascade;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.LockMode;
-import org.hibernate.LockOptions;
-import org.junit.Before;
+import org.hibernate.annotations.Immutable;
 import org.junit.Test;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-
-import static org.junit.Assert.assertFalse;
 
 
 /**
@@ -25,7 +19,9 @@ public class OneToOneCascadeTest extends AbstractTest {
     protected Class<?>[] entities() {
         return new Class<?>[]{
                 Post.class,
-                PostDetails.class
+                PostDetails.class,
+                Commit.class,
+                BranchMerge.class
         };
     }
 
@@ -78,6 +74,26 @@ public class OneToOneCascadeTest extends AbstractTest {
         doInTransaction(session -> {
             Post post = (Post) session.get(Post.class, 1L);
             session.delete(post);
+        });
+    }
+
+    @Test
+    public void testCascadeForUnidirectionalAssociation() {
+        LOGGER.info("Test Cascade for unidirectional");
+
+        doInTransaction(session -> {
+            Commit commit = new Commit();
+            commit.setComment("Reintegrate feature branch FP-123");
+            commit.addBranchMerge(
+                    "FP-123",
+                    "develop"
+            );
+            session.persist(commit);
+        });
+
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            session.delete(commit);
         });
     }
 
@@ -179,6 +195,91 @@ public class OneToOneCascadeTest extends AbstractTest {
         @PrePersist
         public void onPersist() {
             createdOn = new Date();
+        }
+    }
+
+    @Entity(name = "Commit")
+    public static class Commit {
+
+        @Id
+        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        private Long id;
+
+        private String comment;
+
+        @OneToOne(cascade = CascadeType.ALL)
+        @JoinTable(name = "Branch_Merge_Commit",
+                joinColumns = @JoinColumn(name = "commit_id", referencedColumnName = "id"),
+                inverseJoinColumns = @JoinColumn(name = "branch_merge_id", referencedColumnName = "id")
+        )
+        private BranchMerge branchMerge;
+
+        @Version
+        private int version;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getComment() {
+            return comment;
+        }
+
+        public void setComment(String comment) {
+            this.comment = comment;
+        }
+
+        public BranchMerge getBranchMerge() {
+            return branchMerge;
+        }
+
+        public void addBranchMerge(String fromBranch, String toBranch) {
+            this.branchMerge = new BranchMerge(fromBranch, toBranch);
+        }
+
+        public void removeBranchMerge() {
+            this.branchMerge = null;
+        }
+    }
+
+    @Entity(name = "BranchMerge")
+    @Immutable
+    public static class BranchMerge {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+
+        private String fromBranch;
+
+        private String toBranch;
+
+        public BranchMerge() {
+        }
+
+        public BranchMerge(String fromBranch, String toBranch) {
+            this.fromBranch = fromBranch;
+            this.toBranch = toBranch;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getFromBranch() {
+            return fromBranch;
+        }
+
+        public String getToBranch() {
+            return toBranch;
         }
     }
 }
