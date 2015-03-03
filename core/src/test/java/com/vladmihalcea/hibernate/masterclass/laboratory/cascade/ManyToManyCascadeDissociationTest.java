@@ -16,7 +16,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Vlad Mihalcea
  */
-public class ManyToManyCascadeDoneRightTest extends AbstractTest {
+public class ManyToManyCascadeDissociationTest extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -58,6 +58,7 @@ public class ManyToManyCascadeDoneRightTest extends AbstractTest {
             Author _Mark_Armstrong = getByName(session, "Mark Armstrong");
             _Mark_Armstrong.remove();
             session.delete(_Mark_Armstrong);
+            session.flush();
             Author _John_Smith = getByName(session, "John Smith");
             assertEquals(2, _John_Smith.books.size());
         });
@@ -66,12 +67,10 @@ public class ManyToManyCascadeDoneRightTest extends AbstractTest {
 
     private Author getByName(Session session, String fullName) {
         return (Author) session
-                .createQuery("select a from Author a where a.fullName = :fullName")
+                .createQuery("select a from Author a join fetch a.books where a.fullName = :fullName")
                 .setParameter("fullName", fullName)
                 .uniqueResult();
     }
-
-
 
     @Entity(name = "Author")
     public static class Author {
