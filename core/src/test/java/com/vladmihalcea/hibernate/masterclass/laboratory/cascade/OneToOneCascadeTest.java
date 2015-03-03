@@ -82,8 +82,7 @@ public class OneToOneCascadeTest extends AbstractTest {
         LOGGER.info("Test Cascade for unidirectional");
 
         doInTransaction(session -> {
-            Commit commit = new Commit();
-            commit.setComment("Reintegrate feature branch FP-123");
+            Commit commit = new Commit("Reintegrate feature branch FP-123");
             commit.addBranchMerge(
                     "FP-123",
                     "develop"
@@ -109,17 +108,9 @@ public class OneToOneCascadeTest extends AbstractTest {
         @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
         private PostDetails details;
 
-        @Version
-        private int version;
-
         public Long getId() {
             return id;
         }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
 
         public PostDetails getDetails() {
             return details;
@@ -161,31 +152,12 @@ public class OneToOneCascadeTest extends AbstractTest {
         @PrimaryKeyJoinColumn
         private Post post;
 
-        @Version
-        private int version;
-
         public Long getId() {
             return id;
         }
 
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public Date getCreatedOn() {
-            return createdOn;
-        }
-
-        public boolean isVisible() {
-            return visible;
-        }
-
         public void setVisible(boolean visible) {
             this.visible = visible;
-        }
-
-        public Post getPost() {
-            return post;
         }
 
         public void setPost(Post post) {
@@ -214,27 +186,15 @@ public class OneToOneCascadeTest extends AbstractTest {
         )
         private BranchMerge branchMerge;
 
-        @Version
-        private int version;
-
-        public Long getId() {
-            return id;
+        public Commit() {
         }
 
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getComment() {
-            return comment;
-        }
-
-        public void setComment(String comment) {
+        public Commit(String comment) {
             this.comment = comment;
         }
 
-        public BranchMerge getBranchMerge() {
-            return branchMerge;
+        public Long getId() {
+            return id;
         }
 
         public void addBranchMerge(String fromBranch, String toBranch) {
@@ -268,18 +228,6 @@ public class OneToOneCascadeTest extends AbstractTest {
 
         public Long getId() {
             return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getFromBranch() {
-            return fromBranch;
-        }
-
-        public String getToBranch() {
-            return toBranch;
         }
     }
 }

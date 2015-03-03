@@ -86,11 +86,7 @@ public class ManyToManyCascadeDoneRightTest extends AbstractTest {
         @ManyToMany(mappedBy = "authors", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
         private List<Book> books = new ArrayList<>();
 
-        @Version
-        private int version;
-
-        public Author() {
-        }
+        private Author() {}
 
         public Author(String fullName) {
             this.fullName = fullName;
@@ -98,14 +94,6 @@ public class ManyToManyCascadeDoneRightTest extends AbstractTest {
 
         public Long getId() {
             return id;
-        }
-
-        public String getFullName() {
-            return fullName;
-        }
-
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
         }
 
         public void addBook(Book book) {
@@ -142,11 +130,7 @@ public class ManyToManyCascadeDoneRightTest extends AbstractTest {
         )
         private List<Author> authors = new ArrayList<>();
 
-        @Version
-        private int version;
-
-        public Book() {
-        }
+        private Book() {}
 
         public Book(String title) {
             this.title = title;
