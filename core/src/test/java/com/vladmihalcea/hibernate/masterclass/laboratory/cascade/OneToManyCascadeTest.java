@@ -5,7 +5,6 @@ import org.junit.Test;
 
 import javax.persistence.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -69,12 +68,12 @@ public class OneToManyCascadeTest extends AbstractTest {
 
         doInTransaction(session -> {
             Post post = (Post) session.createQuery(
-                "select p " +
-                "from Post p " +
-                "join fetch p.comments " +
-                "where p.id = :id")
-            .setParameter("id", 1L)
-            .uniqueResult();
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.comments " +
+                            "where p.id = :id")
+                    .setParameter("id", 1L)
+                    .uniqueResult();
             post.removeComment(post.getComments().get(0));
         });
     }
@@ -95,7 +94,7 @@ public class OneToManyCascadeTest extends AbstractTest {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.AUTO)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private String name;
@@ -103,27 +102,12 @@ public class OneToManyCascadeTest extends AbstractTest {
         @OneToMany(cascade = CascadeType.ALL, mappedBy = "post", orphanRemoval = true)
         private List<Comment> comments = new ArrayList<>();
 
-        @Version
-        private int version;
-
-        public Long getId() {
-            return id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
         public void setName(String name) {
             this.name = name;
         }
 
         public List<Comment> getComments() {
             return comments;
-        }
-
-        public final int getVersion() {
-            return version;
         }
 
         public void addComment(Comment comment) {
@@ -141,21 +125,13 @@ public class OneToManyCascadeTest extends AbstractTest {
     public static class Comment {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.AUTO)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         @ManyToOne
         private Post post;
 
         private String review;
-
-        public Long getId() {
-            return id;
-        }
-
-        public Post getPost() {
-            return post;
-        }
 
         public void setPost(Post post) {
             this.post = post;
