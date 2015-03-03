@@ -53,7 +53,7 @@ public class OneToManyCascadeTest extends AbstractTest {
                 .stream()
                 .filter(comment -> comment.getReview().toLowerCase().contains("nice"))
                 .findAny()
-                .ifPresent(comment -> comment.setReview("Keep on going!"));
+                .ifPresent(comment -> comment.setReview("Keep up the good work!"));
 
         doInTransaction(session -> {
             session.merge(post);
@@ -82,10 +82,9 @@ public class OneToManyCascadeTest extends AbstractTest {
     public void testCascadeTypeDelete() {
         LOGGER.info("Test CascadeType.DELETE");
 
-        newPost();
+        Post post = newPost();
 
         doInTransaction(session -> {
-            Post post = (Post) session.get(Post.class, 1L);
             session.delete(post);
         });
     }
