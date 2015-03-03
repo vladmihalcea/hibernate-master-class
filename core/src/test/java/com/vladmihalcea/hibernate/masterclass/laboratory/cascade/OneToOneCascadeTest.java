@@ -68,11 +68,9 @@ public class OneToOneCascadeTest extends AbstractTest {
     @Test
     public void testCascadeTypeDelete() {
         LOGGER.info("Test CascadeType.DELETE");
-
-        newPost();
+        Post post = newPost();
 
         doInTransaction(session -> {
-            Post post = (Post) session.get(Post.class, 1L);
             session.delete(post);
         });
     }
@@ -100,12 +98,13 @@ public class OneToOneCascadeTest extends AbstractTest {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private String name;
 
-        @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+        @OneToOne(mappedBy = "post",
+                cascade = CascadeType.ALL, orphanRemoval = true)
         private PostDetails details;
 
         public Long getId() {
@@ -144,7 +143,9 @@ public class OneToOneCascadeTest extends AbstractTest {
         @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
-        private Date createdOn;
+        @Column(name = "created_on")
+        @Temporal(TemporalType.TIMESTAMP)
+        private Date createdOn = new Date();
 
         private boolean visible;
 
@@ -163,18 +164,13 @@ public class OneToOneCascadeTest extends AbstractTest {
         public void setPost(Post post) {
             this.post = post;
         }
-
-        @PrePersist
-        public void onPersist() {
-            createdOn = new Date();
-        }
     }
 
     @Entity(name = "Commit")
     public static class Commit {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private String comment;

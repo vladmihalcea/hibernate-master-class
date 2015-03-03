@@ -79,7 +79,7 @@ public class ManyToManyCascadeAllBothSidesTest extends AbstractTest {
     public static class Author {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         @Column(name = "full_name", nullable = false)
@@ -113,7 +113,7 @@ public class ManyToManyCascadeAllBothSidesTest extends AbstractTest {
     public static class Book {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         @Column(name = "title", nullable = false)

@@ -95,7 +95,7 @@ public class OneToManyCascadeTest extends AbstractTest {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         private String name;
@@ -141,7 +141,7 @@ public class OneToManyCascadeTest extends AbstractTest {
     public static class Comment {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         @ManyToOne
