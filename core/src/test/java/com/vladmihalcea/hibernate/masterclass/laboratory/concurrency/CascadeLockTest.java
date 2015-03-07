@@ -12,8 +12,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 /**
@@ -72,12 +71,55 @@ public class CascadeLockTest extends AbstractTest {
     }
 
     @Test
-    public void testCascadeLockOnDetachedEntity() throws InterruptedException {
+    public void testCascadeLockOnDetachedEntity() {
         LOGGER.info("Test lock cascade for detached entity");
-        Post _post = doInTransaction(session -> (Post) session.get(Post.class, 1L));
+        Post _post = doInTransaction(session -> (Post) session.createQuery(
+                "select p " +
+                        "from Post p " +
+                        "join fetch p.details " +
+                        "join fetch p.comments " +
+                        "where " +
+                        "   p.id = :id"
+        ).setParameter("id", 1L)
+        .uniqueResult());
+        _post.setName("Hibernate Training");
         doInTransaction(session -> {
             assertFalse(session.contains(_post));
+            assertFalse(session.contains(_post.getDetails()));
+
+            for(Comment comment : _post.getComments()) {
+                assertFalse(session.contains(comment));
+            }
+
             session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(_post);
+            assertEquals("Hibernate Training", _post.getName());
+
+            assertTrue(session.contains(_post));
+            assertTrue(session.contains(_post.getDetails()));
+
+            for(Comment comment : _post.getComments()) {
+                assertTrue(session.contains(comment));
+            }
+        });
+        doInTransaction(session -> {
+            Post post = (Post) session.get(Post.class, 1L);
+            assertEquals("Hibernate Master Class", post.getName());
+        });
+    }
+
+    @Test
+    public void testUpdateOnDetachedEntity() {
+        LOGGER.info("Test update for detached entity");
+        Post _post = doInTransaction(session -> (Post) session.get(Post.class, 1L));
+        _post.setName("Hibernate Training");
+        doInTransaction(session -> {
+            assertFalse(session.contains(_post));
+            session.update(_post);
+            assertEquals("Hibernate Training", _post.getName());
+        });
+        doInTransaction(session -> {
+            Post post = (Post) session.get(Post.class, 1L);
+            assertEquals("Hibernate Training", post.getName());
         });
     }
 
@@ -93,7 +135,7 @@ public class CascadeLockTest extends AbstractTest {
         @OneToMany(cascade = CascadeType.ALL, mappedBy = "post", orphanRemoval = true)
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false)
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false, fetch = FetchType.LAZY)
         private PostDetails details;
 
         @Version
@@ -147,7 +189,7 @@ public class CascadeLockTest extends AbstractTest {
 
         private Date createdOn;
 
-        @OneToOne
+        @OneToOne(fetch = FetchType.LAZY)
         @PrimaryKeyJoinColumn
         private Post post;
 
