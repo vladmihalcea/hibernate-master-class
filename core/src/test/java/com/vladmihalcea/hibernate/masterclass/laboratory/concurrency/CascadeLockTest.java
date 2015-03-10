@@ -12,8 +12,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 
 /**
@@ -39,17 +38,9 @@ public class CascadeLockTest extends AbstractTest {
             Post post = new Post();
             post.setName("Hibernate Master Class");
 
-            PostDetails details = new PostDetails();
-            details.setCreatedOn(new Date());
-
-            Comment comment1 = new Comment();
-            comment1.setReview("Good post!");
-            Comment comment2 = new Comment();
-            comment2.setReview("Nice post!");
-
-            post.addDetails(details);
-            post.addComment(comment1);
-            post.addComment(comment2);
+            post.addDetails(new PostDetails());
+            post.addComment(new Comment("Good post!"));
+            post.addComment(new Comment("Nice post!"));
 
             session.persist(post);
         });
@@ -59,25 +50,93 @@ public class CascadeLockTest extends AbstractTest {
     public void testCascadeLockOnManagedEntity() throws InterruptedException {
         LOGGER.info("Test lock cascade for managed entity");
         doInTransaction(session -> {
-            Post _post = (Post) session.createQuery(
-                    "select p " +
-                    "from Post p " +
-                    "join fetch p.details " +
-                    "where " +
-                    "   p.id = :id"
+            Post post = (Post) session.createQuery(
+                "select p " +
+                "from Post p " +
+                "join fetch p.details " +
+                "where " +
+                "   p.id = :id"
             ).setParameter("id", 1L)
             .uniqueResult();
-            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setScope(true).lock(_post);
+            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(post);
+        });
+    }
+
+    private void containsPost(Session session, Post post, boolean expected) {
+        assertEquals(expected, session.contains(post));
+        assertEquals(expected, (session.contains(post.getDetails())));
+        for(Comment comment : post.getComments()) {
+            assertEquals(expected, (session.contains(comment)));
+        }
+    }
+
+    @Test
+    public void testCascadeLockOnDetachedEntity() {
+        LOGGER.info("Test lock cascade for detached entity");
+
+        //Load the Post entity, which will become detached
+        Post post = doInTransaction(session -> (Post) session.createQuery(
+                "select p " +
+                "from Post p " +
+                "join fetch p.details " +
+                "join fetch p.comments " +
+                "where " +
+                "   p.id = :id"
+        ).setParameter("id", 1L)
+        .uniqueResult());
+
+        //Change the detached entity state
+        post.setName("Hibernate Training");
+        doInTransaction(session -> {
+            //The Post entity graph is detached
+            containsPost(session, post, false);
+
+            //The Lock request associates the entity graph and locks the requested entity
+            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(post);
+
+            //Hibernate doesn't know if the entity is dirty
+            assertEquals("Hibernate Training", post.getName());
+
+            //The Post entity graph is attached
+            containsPost(session, post, true);
+        });
+        doInTransaction(session -> {
+            //The detached Post entity changes have been lost
+            Post _post = (Post) session.get(Post.class, 1L);
+            assertEquals("Hibernate Master Class", _post.getName());
         });
     }
 
     @Test
-    public void testCascadeLockOnDetachedEntity() throws InterruptedException {
-        LOGGER.info("Test lock cascade for detached entity");
-        Post _post = doInTransaction(session -> (Post) session.get(Post.class, 1L));
+    public void testUpdateOnDetachedEntity() {
+        LOGGER.info("Test update for detached entity");
+        //Load the Post entity, which will become detached
+        Post post = doInTransaction(session -> (Post) session.createQuery(
+                "select p " +
+                        "from Post p " +
+                        "join fetch p.details " +
+                        "join fetch p.comments " +
+                        "where " +
+                        "   p.id = :id"
+        ).setParameter("id", 1L)
+        .uniqueResult());
+
+        //Change the detached entity state
+        post.setName("Hibernate Training");
+
         doInTransaction(session -> {
-            assertFalse(session.contains(_post));
-            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(_post);
+            //The Post entity graph is detached
+            containsPost(session, post, false);
+
+            //The update will trigger an entity state flush and attach the entity graph
+            session.update(post);
+
+            //The Post entity graph is attached
+            containsPost(session, post, true);
+        });
+        doInTransaction(session -> {
+            Post _post = (Post) session.get(Post.class, 1L);
+            assertEquals("Hibernate Training", _post.getName());
         });
     }
 
@@ -85,7 +144,7 @@ public class CascadeLockTest extends AbstractTest {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         private String name;
@@ -93,19 +152,8 @@ public class CascadeLockTest extends AbstractTest {
         @OneToMany(cascade = CascadeType.ALL, mappedBy = "post", orphanRemoval = true)
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false)
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false, fetch = FetchType.LAZY)
         private PostDetails details;
-
-        @Version
-        private int version;
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
 
         public String getName() {
             return name;
@@ -121,10 +169,6 @@ public class CascadeLockTest extends AbstractTest {
 
         public PostDetails getDetails() {
             return details;
-        }
-
-        public final int getVersion() {
-            return version;
         }
 
         public void addComment(Comment comment) {
@@ -147,52 +191,38 @@ public class CascadeLockTest extends AbstractTest {
 
         private Date createdOn;
 
-        @OneToOne
+        public PostDetails() {
+            createdOn = new Date();
+        }
+
+        @OneToOne(fetch = FetchType.LAZY)
         @PrimaryKeyJoinColumn
         private Post post;
-
-        @Version
-        private int version;
 
         public Long getId() {
             return id;
         }
 
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public Date getCreatedOn() {
-            return createdOn;
-        }
-
-        public void setCreatedOn(Date createdOn) {
-            this.createdOn = createdOn;
-        }
-
-        public Post getPost() {
-            return post;
-        }
-
         public void setPost(Post post) {
             this.post = post;
         }
-
-        public final int getVersion() {
-            return version;
-        }
-
     }
 
     @Entity(name = "Comment")
     public static class Comment {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.IDENTITY)
+        @GeneratedValue(strategy=GenerationType.AUTO)
         private Long id;
 
         @ManyToOne
         private Post post;
+
+        public Comment() {}
+
+        public Comment(String review) {
+            this.review = review;
+        }
 
         private String review;
 
@@ -200,16 +230,8 @@ public class CascadeLockTest extends AbstractTest {
             return id;
         }
 
-        public Post getPost() {
-            return post;
-        }
-
         public void setPost(Post post) {
             this.post = post;
-        }
-
-        public String getReview() {
-            return review;
         }
 
         public void setReview(String review) {
