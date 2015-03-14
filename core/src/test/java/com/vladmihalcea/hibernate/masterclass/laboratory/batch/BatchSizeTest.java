@@ -6,6 +6,7 @@ import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.dialect.Dialect;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,6 +14,8 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,20 +33,36 @@ public class BatchSizeTest extends AbstractIntegrationTest {
         };
     }
 
+    @Override
+    protected Properties getProperties() {
+        Properties properties = super.getProperties();
+        properties.put("hibernate.jdbc.batch_versioned_data", "true");
+        return properties;
+    }
+
     @Test
-    public void testCascadeLockOnManagedEntity() throws InterruptedException {
-        LOGGER.info("Test lock cascade for managed entity");
+    public void testDefaultBatchSize() throws InterruptedException {
+        LOGGER.info("Test default batch size");
+        long startNanos = System.nanoTime();
         doInTransaction(session -> {
-            Post post = (Post) session.createQuery(
-                "select p " +
-                "from Post p " +
-                "join fetch p.details " +
-                "where " +
-                "   p.id = :id"
-            ).setParameter("id", 1L)
-            .uniqueResult();
-            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setScope(true).lock(post);
+            int batchSize = batchSize();
+            for(int i = 0; i < itemsCount(); i++) {
+                session.persist(new Post(String.format("Post no. %d", i)));
+                if(i % batchSize == 0 && i > 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
         });
+        LOGGER.info("{} took {} millis", getClass().getSimpleName(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    }
+
+    protected int itemsCount() {
+        return 100;
+    }
+
+    protected int batchSize() {
+        return Integer.valueOf(Dialect.DEFAULT_BATCH_SIZE);
     }
 
     @Entity(name = "Post")
@@ -54,7 +73,7 @@ public class BatchSizeTest extends AbstractIntegrationTest {
             parameters = {
                 @org.hibernate.annotations.Parameter(name = "optimizer", value = "pooled-lo"),
                 @org.hibernate.annotations.Parameter(name = "initial_value", value = "1"),
-                @org.hibernate.annotations.Parameter(name = "increment_size", value = "100")
+                @org.hibernate.annotations.Parameter(name = "increment_size", value = "30")
             }
         )
         @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequenceGenerator")
