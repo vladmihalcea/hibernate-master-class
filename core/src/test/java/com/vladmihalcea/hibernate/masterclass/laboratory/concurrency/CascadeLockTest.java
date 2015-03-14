@@ -58,7 +58,7 @@ public class CascadeLockTest extends AbstractTest {
                 "   p.id = :id"
             ).setParameter("id", 1L)
             .uniqueResult();
-            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(post);
+            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setScope(true).lock(post);
         });
     }
 
@@ -71,8 +71,8 @@ public class CascadeLockTest extends AbstractTest {
     }
 
     @Test
-    public void testCascadeLockOnDetachedEntity() {
-        LOGGER.info("Test lock cascade for detached entity");
+    public void testCascadeLockOnDetachedEntityWithoutScope() {
+        LOGGER.info("Test lock cascade for detached entity without scope");
 
         //Load the Post entity, which will become detached
         Post post = doInTransaction(session -> (Post) session.createQuery(
@@ -93,6 +93,43 @@ public class CascadeLockTest extends AbstractTest {
 
             //The Lock request associates the entity graph and locks the requested entity
             session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).lock(post);
+
+            //Hibernate doesn't know if the entity is dirty
+            assertEquals("Hibernate Training", post.getName());
+
+            //The Post entity graph is attached
+            containsPost(session, post, true);
+        });
+        doInTransaction(session -> {
+            //The detached Post entity changes have been lost
+            Post _post = (Post) session.get(Post.class, 1L);
+            assertEquals("Hibernate Master Class", _post.getName());
+        });
+    }
+
+    @Test
+    public void testCascadeLockOnDetachedEntityWithScope() {
+        LOGGER.info("Test lock cascade for detached entity with scope");
+
+        //Load the Post entity, which will become detached
+        Post post = doInTransaction(session -> (Post) session.createQuery(
+                "select p " +
+                        "from Post p " +
+                        "join fetch p.details " +
+                        "join fetch p.comments " +
+                        "where " +
+                        "   p.id = :id"
+        ).setParameter("id", 1L)
+                .uniqueResult());
+
+        //Change the detached entity state
+        post.setName("Hibernate Training");
+        doInTransaction(session -> {
+            //The Post entity graph is detached
+            containsPost(session, post, false);
+
+            //The Lock request associates the entity graph and locks the requested entity
+            session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_WRITE)).setScope(true).lock(post);
 
             //Hibernate doesn't know if the entity is dirty
             assertEquals("Hibernate Training", post.getName());
