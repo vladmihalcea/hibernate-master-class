@@ -7,7 +7,7 @@ import java.util.Properties;
  *
  * @author Vlad Mihalcea
  */
-public class TunedBatchSizeTest extends BatchSizeTest {
+public class TunedBatchInsertTest extends DefaultDialectOrderedVersionedBatchingTest {
 
     @Override
     protected Properties getProperties() {
