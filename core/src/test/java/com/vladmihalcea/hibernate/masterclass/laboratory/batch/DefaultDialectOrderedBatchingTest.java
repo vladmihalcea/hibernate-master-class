@@ -12,7 +12,6 @@ public class DefaultDialectOrderedBatchingTest extends DefaultDialectBatchingTes
     @Override
     protected Properties getProperties() {
         Properties properties = super.getProperties();
-        properties.put("hibernate.jdbc.batch_size", String.valueOf(batchSize()));
         properties.put("hibernate.order_inserts", "true");
         properties.put("hibernate.order_updates", "true");
         return properties;

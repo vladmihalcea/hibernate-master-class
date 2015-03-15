@@ -9,14 +9,7 @@ import java.util.Properties;
  */
 public class TunedBatchInsertTest extends DefaultDialectOrderedVersionedBatchingTest {
 
-    @Override
-    protected Properties getProperties() {
-        Properties properties = super.getProperties();
-        properties.put("hibernate.jdbc.batch_size", String.valueOf(batchSize()));
-        return properties;
-    }
-
     protected int batchSize() {
-        return 60;
+        return 50;
     }
 }
