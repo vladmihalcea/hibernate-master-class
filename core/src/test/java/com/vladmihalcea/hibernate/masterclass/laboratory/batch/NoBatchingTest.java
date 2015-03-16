@@ -73,7 +73,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
     }
 
     protected int itemsCount() {
-        return 100;
+        return 3;
     }
 
     protected int batchSize() {
