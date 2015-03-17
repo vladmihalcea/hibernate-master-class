@@ -61,6 +61,19 @@
         </dependency>
 
         <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-ehcache</artifactId>
+            <version>${hibernate.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <artifactId>ehcache-core</artifactId>
+            <version>${ehcache.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
             <groupId>net.ttddyy</groupId>
             <artifactId>datasource-proxy</artifactId>
             <version>${datasource-proxy.version}</version>
@@ -95,6 +108,7 @@
         <commons-lang.version>3.3.2</commons-lang.version>
         <hibernate.version>4.3.8.Final</hibernate.version>
         <javassist.version>3.18.1-GA</javassist.version>
+        <ehcache.version>2.6.9</ehcache.version>
         <datasource-proxy.version>1.2.1</datasource-proxy.version>
         <hsqldb.version>2.3.2</hsqldb.version>
         <postgresql.version>9.1-901-1.jdbc4</postgresql.version>
