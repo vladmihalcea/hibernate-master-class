@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,7 +49,14 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
             post.addComment(new Comment("Nice post!"));
 
             session.persist(post);
+            session.get(PostDetails.class, post.getDetails().getId());
         });
+    }
+
+    @After
+    public void destroy() {
+        getSessionFactory().getCache().evictAllRegions();
+        super.destroy();
     }
 
     @Test
@@ -67,10 +75,20 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
     public void test2ndLevelCacheWithQuery() {
         LOGGER.info("Test 2nd level cache");
         doInTransaction(session -> {
+            session.createSQLQuery("select * from Post").list();
+
+            session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .list();
+
             Post post = (Post) session.createQuery(
                     "select p " +
                             "from Post p " +
                             "join fetch p.details " +
+                            "join fetch p.comments " +
                             "where " +
                             "   p.id = :id").setParameter("id", 1L)
                     .setCacheable(true)
@@ -84,6 +102,20 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
         doInTransaction(session -> {
             LOGGER.info("Check query entity is cached after query");
             Post post = (Post) session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.details " +
+                            "join fetch p.comments " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
+
+            post.setName("High-Performance Hibernate");
+            session.flush();
+
+            LOGGER.info("Check query entity query is invalidated");
+            post = (Post) session.createQuery(
                     "select p " +
                             "from Post p " +
                             "join fetch p.details " +
@@ -105,12 +137,10 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
 
         private String name;
 
-        @OneToMany(cascade = CascadeType.ALL, mappedBy = "post", orphanRemoval = true)
-        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
+        @OneToMany(cascade = CascadeType.ALL, mappedBy = "post")
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false, fetch = FetchType.LAZY)
-        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false)
         private PostDetails details;
 
         public String getName() {
@@ -155,7 +185,7 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
             createdOn = new Date();
         }
 
-        @OneToOne(fetch = FetchType.LAZY)
+        @ManyToOne
         @PrimaryKeyJoinColumn
         private Post post;
 
