@@ -52,22 +52,45 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
     }
 
     @Test
-    public void test2ndLevelCache() throws InterruptedException {
+    public void test2ndLevelCacheWithGet() {
         LOGGER.info("Test 2nd level cache");
         doInTransaction(session -> {
-            /*Post post = (Post) session.createQuery(
+            Post post = (Post) session.get(Post.class, 1L);
+        });
+        doInTransaction(session -> {
+            LOGGER.info("Check entity is cached after load");
+            Post post = (Post) session.get(Post.class, 1L);
+        });
+    }
+
+    @Test
+    public void test2ndLevelCacheWithQuery() {
+        LOGGER.info("Test 2nd level cache");
+        doInTransaction(session -> {
+            Post post = (Post) session.createQuery(
                     "select p " +
                             "from Post p " +
                             "join fetch p.details " +
                             "where " +
-                            "   p.id = :id"
-            ).setParameter("id", 1L)
-            .uniqueResult();*/
-            Post post = (Post) session.get(Post.class, 1L);
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
         });
         doInTransaction(session -> {
-            LOGGER.info("Check entity is cached");
+            LOGGER.info("Check get entity is cached after query");
             Post post = (Post) session.get(Post.class, 1L);
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("Check query entity is cached after query");
+            Post post = (Post) session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.details " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
         });
     }
 
@@ -77,7 +100,7 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.AUTO)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private String name;
@@ -151,13 +174,14 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
     public static class Comment {
 
         @Id
-        @GeneratedValue(strategy=GenerationType.AUTO)
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         @ManyToOne
         private Post post;
 
-        public Comment() {}
+        public Comment() {
+        }
 
         public Comment(String review) {
             this.review = review;
