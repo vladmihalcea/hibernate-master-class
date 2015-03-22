@@ -7,8 +7,12 @@ import org.junit.Test;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  * NoBatchingTest - Test to check the default batch support
@@ -72,6 +76,86 @@ public class NoBatchingTest extends AbstractIntegrationTest {
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
+    @Test
+    public void testCascadeDelete() {
+        LOGGER.info("Test batch delete with cascade");
+
+        doInTransaction(session -> {
+            int batchSize = batchSize();
+            for(int i = 0; i < itemsCount(); i++) {
+                Post post = new Post(String.format("Post no. %d", i));
+                int j = 0;
+                post.addComment(new Comment(
+                        String.format("Post comment %d:%d", i, j++)));
+                post.addComment(new Comment(
+                        String.format("Post comment %d:%d", i, j++)));
+                session.persist(post);
+                if(i % batchSize == 0 && i > 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+        });
+
+        long startNanos = System.nanoTime();
+
+        doInTransaction(session -> {
+            List<Post> posts = session.createQuery(
+                "select distinct p " +
+                        "from Post p " +
+                        "join fetch p.comments c")
+            .list();
+
+            for (Post post : posts) {
+                session.delete(post);
+            }
+        });
+
+        LOGGER.info("{}.testCascadeDelete took {} millis",
+                getClass().getSimpleName(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    }
+
+    @Test
+    public void testOrphanRemoval() {
+        LOGGER.info("Test batch delete with orphan removal");
+
+        doInTransaction(session -> {
+            int batchSize = batchSize();
+            for(int i = 0; i < itemsCount(); i++) {
+                Post post = new Post(String.format("Post no. %d", i));
+                int j = 0;
+                post.addComment(new Comment(
+                        String.format("Post comment %d:%d", i, j++)));
+                post.addComment(new Comment(
+                        String.format("Post comment %d:%d", i, j++)));
+                session.persist(post);
+                if(i % batchSize == 0 && i > 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+        });
+
+        long startNanos = System.nanoTime();
+
+        doInTransaction(session -> {
+            List<Post> posts = session.createQuery(
+                    "select distinct p " +
+                            "from Post p " +
+                            "join fetch p.comments c")
+                    .list();
+
+            List<Comment> comments = posts.stream().map(post -> post.comments).flatMap(Collection::stream).collect(Collectors.<Comment>toList());
+            comments.forEach(session::delete);
+            posts.forEach(session::delete);
+        });
+
+        LOGGER.info("{}.testOrphanRemoval took {} millis",
+                getClass().getSimpleName(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    }
+
     protected int itemsCount() {
         return 3;
     }
@@ -128,6 +212,11 @@ public class NoBatchingTest extends AbstractIntegrationTest {
         public void addComment(Comment comment) {
             comments.add(comment);
             comment.setPost(this);
+        }
+
+        public void removeComment(Comment comment) {
+            comments.remove(comment);
+            comment.setPost(null);
         }
     }
 
