@@ -140,7 +140,6 @@ public class OneToOneCascadeTest extends AbstractTest {
     public static class PostDetails {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         @Column(name = "created_on")
@@ -150,7 +149,8 @@ public class OneToOneCascadeTest extends AbstractTest {
         private boolean visible;
 
         @OneToOne
-        @PrimaryKeyJoinColumn
+        @JoinColumn(name = "id")
+        @MapsId
         private Post post;
 
         public Long getId() {

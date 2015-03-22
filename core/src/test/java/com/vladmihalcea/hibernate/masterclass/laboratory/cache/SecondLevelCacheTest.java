@@ -61,7 +61,6 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
 
     @Test
     public void test2ndLevelCacheWithGet() {
-        LOGGER.info("Test 2nd level cache");
         doInTransaction(session -> {
             Post post = (Post) session.get(Post.class, 1L);
         });
@@ -73,16 +72,7 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
 
     @Test
     public void test2ndLevelCacheWithQuery() {
-        LOGGER.info("Test 2nd level cache");
         doInTransaction(session -> {
-            session.createSQLQuery("select * from Post").list();
-
-            session.createQuery(
-                    "select p " +
-                            "from Post p " +
-                            "where " +
-                            "   p.id = :id").setParameter("id", 1L)
-                    .list();
 
             Post post = (Post) session.createQuery(
                     "select p " +
@@ -126,6 +116,51 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
         });
     }
 
+    @Test
+    public void test2ndLevelCacheWithQueryInvalidation() {
+        doInTransaction(session -> {
+            Post post = (Post) session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.details " +
+                            "join fetch p.comments " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("Check query entity is cached after query");
+            Post post = (Post) session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.details " +
+                            "join fetch p.comments " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
+
+            LOGGER.info("Insert a new Post!");
+
+            Post newPost = new Post();
+            newPost.setName("Hibernate Book!");
+            session.persist(newPost);
+            session.flush();
+
+            LOGGER.info("Check query entity query is invalidated");
+            post = (Post) session.createQuery(
+                    "select p " +
+                            "from Post p " +
+                            "join fetch p.details " +
+                            "where " +
+                            "   p.id = :id").setParameter("id", 1L)
+                    .setCacheable(true)
+                    .uniqueResult();
+        });
+    }
+
     @Entity(name = "Post")
     @Cacheable
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
@@ -140,7 +175,7 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
         @OneToMany(cascade = CascadeType.ALL, mappedBy = "post")
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false)
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = true)
         private PostDetails details;
 
         public String getName() {
@@ -176,7 +211,6 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
     public static class PostDetails {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private Date createdOn;
@@ -185,8 +219,9 @@ public class SecondLevelCacheTest extends AbstractIntegrationTest {
             createdOn = new Date();
         }
 
-        @ManyToOne
-        @PrimaryKeyJoinColumn
+        @OneToOne
+        @JoinColumn(name = "id")
+        @MapsId
         private Post post;
 
         public Long getId() {

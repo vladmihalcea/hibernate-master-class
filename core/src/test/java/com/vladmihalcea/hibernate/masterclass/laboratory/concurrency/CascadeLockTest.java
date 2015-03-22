@@ -189,7 +189,7 @@ public class CascadeLockTest extends AbstractTest {
         @OneToMany(cascade = CascadeType.ALL, mappedBy = "post", orphanRemoval = true)
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", optional = false, fetch = FetchType.LAZY)
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post", fetch = FetchType.LAZY)
         private PostDetails details;
 
         public String getName() {
@@ -223,7 +223,6 @@ public class CascadeLockTest extends AbstractTest {
     public static class PostDetails {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
         private Date createdOn;
@@ -233,7 +232,8 @@ public class CascadeLockTest extends AbstractTest {
         }
 
         @OneToOne(fetch = FetchType.LAZY)
-        @PrimaryKeyJoinColumn
+        @JoinColumn(name = "id")
+        @MapsId
         private Post post;
 
         public Long getId() {
