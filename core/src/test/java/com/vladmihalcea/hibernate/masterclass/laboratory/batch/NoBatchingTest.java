@@ -7,12 +7,10 @@ import org.junit.Test;
 
 import javax.persistence.*;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 /**
  * NoBatchingTest - Test to check the default batch support
@@ -25,6 +23,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
     protected Class<?>[] entities() {
         return new Class<?>[]{
             Post.class,
+            PostDetails.class,
             Comment.class
         };
     }
@@ -89,6 +88,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
                         String.format("Post comment %d:%d", i, j++)));
                 post.addComment(new Comment(
                         String.format("Post comment %d:%d", i, j++)));
+                post.addDetails(new PostDetails());
                 session.persist(post);
                 if(i % batchSize == 0 && i > 0) {
                     session.flush();
@@ -103,6 +103,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
             List<Post> posts = session.createQuery(
                 "select distinct p " +
                         "from Post p " +
+                        "join fetch p.details d " +
                         "join fetch p.comments c")
             .list();
 
@@ -129,6 +130,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
                         String.format("Post comment %d:%d", i, j++)));
                 post.addComment(new Comment(
                         String.format("Post comment %d:%d", i, j++)));
+                post.addDetails(new PostDetails());
                 session.persist(post);
                 if(i % batchSize == 0 && i > 0) {
                     session.flush();
@@ -143,11 +145,18 @@ public class NoBatchingTest extends AbstractIntegrationTest {
             List<Post> posts = session.createQuery(
                     "select distinct p " +
                             "from Post p " +
+                            "join fetch p.details d " +
                             "join fetch p.comments c")
                     .list();
 
-            List<Comment> comments = posts.stream().map(post -> post.comments).flatMap(Collection::stream).collect(Collectors.<Comment>toList());
-            comments.forEach(session::delete);
+            posts.forEach(post -> {
+                post.removeDetails();
+                for (Iterator<Comment> commentIterator = post.getComments().iterator(); commentIterator.hasNext(); ) {
+                    Comment comment =  commentIterator.next();
+                    comment.post = null;
+                    commentIterator.remove();
+                }
+            });
             posts.forEach(session::delete);
         });
 
@@ -205,8 +214,20 @@ public class NoBatchingTest extends AbstractIntegrationTest {
                 orphanRemoval = true)
         private List<Comment> comments = new ArrayList<>();
 
+        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post",
+                orphanRemoval = true, fetch = FetchType.LAZY)
+        private PostDetails details;
+
         public void setTitle(String title) {
             this.title = title;
+        }
+
+        public List<Comment> getComments() {
+            return comments;
+        }
+
+        public PostDetails getDetails() {
+            return details;
         }
 
         public void addComment(Comment comment) {
@@ -214,9 +235,40 @@ public class NoBatchingTest extends AbstractIntegrationTest {
             comment.setPost(this);
         }
 
-        public void removeComment(Comment comment) {
-            comments.remove(comment);
-            comment.setPost(null);
+        public void addDetails(PostDetails details) {
+            this.details = details;
+            details.setPost(this);
+        }
+
+        public void removeDetails() {
+            this.details.setPost(null);
+            this.details = null;
+        }
+    }
+
+    @Entity(name = "PostDetails")
+    public static class PostDetails {
+
+        @Id
+        private Long id;
+
+        private Date createdOn;
+
+        public PostDetails() {
+            createdOn = new Date();
+        }
+
+        @OneToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "id")
+        @MapsId
+        private Post post;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setPost(Post post) {
+            this.post = post;
         }
     }
 
