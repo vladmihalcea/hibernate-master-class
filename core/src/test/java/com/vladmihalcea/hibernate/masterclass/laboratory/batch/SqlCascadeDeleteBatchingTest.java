@@ -2,23 +2,22 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.batch;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.dialect.Dialect;
 import org.junit.Test;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * NoBatchingTest - Test to check the default batch support
+ * SqlCascadeDeleteBatchingTest - Test to check the SQL cascade delete
  *
  * @author Vlad Mihalcea
  */
-public class NoBatchingTest extends AbstractIntegrationTest {
+public class SqlCascadeDeleteBatchingTest extends AbstractIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -29,64 +28,24 @@ public class NoBatchingTest extends AbstractIntegrationTest {
         };
     }
 
-    @Test
-    public void testInsertAndUpdate() {
-        LOGGER.info("Test batch insert");
-        long startNanos = System.nanoTime();
-        doInTransaction(session -> {
-            int batchSize = batchSize();
-            for(int i = 0; i < itemsCount(); i++) {
-                Post post = new Post(String.format("Post no. %d", i));
-                int j = 0;
-                post.addComment(new Comment(
-                        String.format("Post comment %d:%d", i, j++)));
-                post.addComment(new Comment(
-                        String.format("Post comment %d:%d", i, j++)));
-                session.persist(post);
-                if(i % batchSize == 0 && i > 0) {
-                    session.flush();
-                    session.clear();
-                }
-            }
-        });
-        LOGGER.info("{}.testInsert took {} millis",
-                getClass().getSimpleName(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
-
-        LOGGER.info("Test batch update");
-        startNanos = System.nanoTime();
-
-        doInTransaction(session -> {
-            List<Post> posts = session.createQuery(
-                "select distinct p " +
-                "from Post p " +
-                "join fetch p.comments c").list();
-
-            for(Post post : posts) {
-                post.title = "Blog " + post.title;
-                for(Comment comment : post.comments) {
-                    comment.review = "Blog " + comment.review;
-                }
-            }
-            session.flush();
-        });
-
-        LOGGER.info("{}.testUpdate took {} millis",
-                getClass().getSimpleName(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    @Override
+    protected Properties getProperties() {
+        Properties properties = super.getProperties();
+        properties.put("hibernate.jdbc.batch_size", String.valueOf(batchSize()));
+        properties.put("hibernate.order_inserts", "true");
+        properties.put("hibernate.order_updates", "true");
+        properties.put("hibernate.jdbc.batch_versioned_data", "true");
+        return properties;
     }
 
     @Test
     public void testCascadeDelete() {
-        LOGGER.info("Test batch delete with cascade");
+        LOGGER.info("Test delete with SQL cascade");
         final AtomicReference<Long> startNanos = new AtomicReference<>();
         addDeleteBatchingRows();
         doInTransaction(session -> {
             List<Post> posts = session.createQuery(
-                "select distinct p " +
-                "from Post p " +
-                "join fetch p.details d " +
-                "join fetch p.comments c")
+                "select p from Post p ")
             .list();
             startNanos.set(System.nanoTime());
             for (Post post : posts) {
@@ -94,36 +53,6 @@ public class NoBatchingTest extends AbstractIntegrationTest {
             }
         });
         LOGGER.info("{}.testCascadeDelete took {} millis",
-                getClass().getSimpleName(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos.get()));
-    }
-
-    @Test
-    public void testOrphanRemoval() {
-        LOGGER.info("Test batch delete with orphan removal");
-        final AtomicReference<Long> startNanos = new AtomicReference<>();
-        addDeleteBatchingRows();
-        doInTransaction(session -> {
-            List<Post> posts = session.createQuery(
-                "select distinct p " +
-                "from Post p " +
-                "join fetch p.details d " +
-                "join fetch p.comments c")
-            .list();
-            startNanos.set(System.nanoTime());
-            posts.forEach(Post::removeDetails);
-            session.flush();
-            posts.forEach(post -> {
-                for (Iterator<Comment> commentIterator = post.getComments().iterator(); commentIterator.hasNext(); ) {
-                    Comment comment =  commentIterator.next();
-                    comment.post = null;
-                    commentIterator.remove();
-                }
-            });
-            session.flush();
-            posts.forEach(session::delete);
-        });
-        LOGGER.info("{}.testOrphanRemoval took {} millis",
                 getClass().getSimpleName(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos.get()));
     }
@@ -193,12 +122,13 @@ public class NoBatchingTest extends AbstractIntegrationTest {
             this.title = title;
         }
 
-        @OneToMany(cascade = CascadeType.ALL, mappedBy = "post",
-                orphanRemoval = true)
+        @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+                mappedBy = "post")
+        @OnDelete(action = OnDeleteAction.CASCADE)
         private List<Comment> comments = new ArrayList<>();
 
-        @OneToOne(cascade = CascadeType.ALL, mappedBy = "post",
-                orphanRemoval = true, fetch = FetchType.LAZY)
+        @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+                mappedBy = "post", fetch = FetchType.LAZY)
         private PostDetails details;
 
         public void setTitle(String title) {
@@ -244,6 +174,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
         @OneToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "id")
         @MapsId
+        @OnDelete(action = OnDeleteAction.CASCADE)
         private Post post;
 
         public Long getId() {
@@ -280,7 +211,7 @@ public class NoBatchingTest extends AbstractIntegrationTest {
                 generator = "sequenceGenerator")
         private Long id;
 
-        @ManyToOne
+        @ManyToOne(fetch = FetchType.LAZY)
         private Post post;
 
         @Version
