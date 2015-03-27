@@ -81,6 +81,7 @@ public class MergeWithTransientOnInverseSideTest extends AbstractIntegrationTest
         private Long id;
 
         @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "post_id", nullable = false)
         private Post post;
 
         @Version
