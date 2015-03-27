@@ -23,7 +23,7 @@ public class MergeWithTransientOnInverseSideTest extends AbstractIntegrationTest
     }
 
     @Test
-    public void testMerge() {
+    public void testMergeDetached() {
 
         final Post post = doInTransaction(session -> {
             Post _post = new Post("Post");
@@ -34,6 +34,17 @@ public class MergeWithTransientOnInverseSideTest extends AbstractIntegrationTest
         doInTransaction(session -> {
             post.getComments().add(new Comment());
             session.merge(post);
+        });
+    }
+
+    @Test
+    public void testMergeTransient() {
+
+        doInTransaction(session -> {
+            Post _post = new Post("Post");
+            _post.getComments().add(new Comment());
+            session.persist(_post);
+            return _post;
         });
     }
 
