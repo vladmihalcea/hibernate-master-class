@@ -1,6 +1,6 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
  *
  * @author Vlad Mihalcea
  */
-public class LockModePessimisticReadWriteIntegrationTest extends AbstractIntegrationTest {
+public class LockModePessimisticReadWriteIntegrationTest extends AbstractPostgreSQLIntegrationTest {
 
     public static final int WAIT_MILLIS = 500;
 

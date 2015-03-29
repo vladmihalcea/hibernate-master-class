@@ -5,11 +5,11 @@ import org.postgresql.ds.PGSimpleDataSource;
 import javax.sql.DataSource;
 
 /**
- * AbstractIntegrationTest - Abstract IntegrationTest
+ * AbstractPostgreSQLIntegrationTest - Abstract PostgreSQL IntegrationTest
  *
  * @author Vlad Mihalcea
  */
-public abstract class AbstractIntegrationTest extends AbstractTest {
+public abstract class AbstractPostgreSQLIntegrationTest extends AbstractTest {
 
     @Override
     protected String hibernateDialect() {

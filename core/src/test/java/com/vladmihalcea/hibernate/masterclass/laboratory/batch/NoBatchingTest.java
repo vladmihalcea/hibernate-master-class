@@ -1,6 +1,6 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.batch;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.dialect.Dialect;
 import org.junit.Test;
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Vlad Mihalcea
  */
-public class NoBatchingTest extends AbstractIntegrationTest {
+public class NoBatchingTest extends AbstractPostgreSQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {

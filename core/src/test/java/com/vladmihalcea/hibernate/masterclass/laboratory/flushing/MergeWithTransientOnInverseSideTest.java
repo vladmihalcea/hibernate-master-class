@@ -1,6 +1,6 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.flushing;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Vlad Mihalcea
  */
-public class MergeWithTransientOnInverseSideTest extends AbstractIntegrationTest {
+public class MergeWithTransientOnInverseSideTest extends AbstractPostgreSQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {

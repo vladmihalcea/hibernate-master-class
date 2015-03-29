@@ -1,6 +1,6 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.junit.After;
 import org.junit.Before;
@@ -17,7 +17,7 @@ import java.util.Properties;
  *
  * @author Vlad Mihalcea
  */
-public class SecondLevelCacheTest extends AbstractIntegrationTest {
+public class SecondLevelCacheTest extends AbstractPostgreSQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
