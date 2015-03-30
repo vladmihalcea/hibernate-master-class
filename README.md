@@ -17,3 +17,11 @@ The Integration Tests require some external configurations:
  2. create a *hibernate-master-class* database
 
 * Oracle
+ 
+ You need to download [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html)
+
+ You need to download the [Orcale JDBC Driver (ojdbc6.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
+ 
+ You need to install the ojdbc6.jar on your local Maven repository using the following command:
+ 
+ $ mvn install:install-file -Dfile=ojdbc6.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
