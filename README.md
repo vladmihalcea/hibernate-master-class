@@ -18,7 +18,9 @@ The Integration Tests require some external configurations:
 
 * Oracle
  
- You need to download [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html)
+ You need to download and isntall [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html) 
+
+ Set the *sys* pasword to *admin*
 
  You need to download the [Orcale JDBC Driver (ojdbc6.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
  
