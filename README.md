@@ -1,4 +1,4 @@
-hibernate-master-class
+Hibernate Master Class Tutorial
 ======================
 
 [Hibernate Master Class](http://vladmihalcea.com/tutorials/hibernate/) is an advance course of one of the most popular JPA implementation
