@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.batch;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.dialect.Dialect;
 import org.junit.Test;
@@ -17,8 +18,9 @@ import java.util.concurrent.TimeUnit;
  * @author Vlad Mihalcea
  */
 public class NoFetchingTest
-        extends AbstractOracleXEIntegrationTest {
         //extends AbstractTest {
+        extends AbstractOracleXEIntegrationTest {
+        //extends AbstractPostgreSQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -29,7 +31,7 @@ public class NoFetchingTest
     }
 
     @Test
-    public void testFetch() {
+    public void testFetchSize() {
         doInTransaction(session -> {
             int batchSize = batchSize();
             for(int i = 0; i < itemsCount(); i++) {
@@ -48,7 +50,7 @@ public class NoFetchingTest
         });
 
         long startNanos = System.nanoTime();
-        LOGGER.info("Test fetch");
+        LOGGER.info("Test fetch size");
         doInTransaction(session -> {
             List posts = session.createQuery(
                     "select p " +
@@ -67,11 +69,15 @@ public class NoFetchingTest
     }
 
     protected int itemsCount() {
-        return 10000;
+        return 5000;
     }
 
     protected int batchSize() {
         return Integer.valueOf(Dialect.DEFAULT_BATCH_SIZE);
+    }
+
+    protected int fetchSize() {
+        return 1000;
     }
 
     @Entity(name = "Post")

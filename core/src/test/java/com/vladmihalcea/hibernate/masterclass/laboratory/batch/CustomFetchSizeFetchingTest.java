@@ -12,7 +12,11 @@ public class CustomFetchSizeFetchingTest extends NoFetchingTest {
     @Override
     protected Properties getProperties() {
         Properties properties = super.getProperties();
-        properties.put("hibernate.jdbc.fetch_size", 1000);
+        properties.put("hibernate.jdbc.fetch_size", fetchSize());
         return properties;
+    }
+
+    protected int fetchSize() {
+        return 10000;
     }
 }
