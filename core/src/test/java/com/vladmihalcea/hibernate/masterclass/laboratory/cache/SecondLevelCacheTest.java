@@ -37,11 +37,13 @@ public class SecondLevelCacheTest extends AbstractPostgreSQLIntegrationTest {
         return properties;
     }
 
+    private Post post;
+
     @Before
     public void init() {
         super.init();
         doInTransaction(session -> {
-            Post post = new Post();
+            post = new Post();
             post.setName("Hibernate Master Class");
 
             post.addDetails(new PostDetails());
@@ -60,13 +62,54 @@ public class SecondLevelCacheTest extends AbstractPostgreSQLIntegrationTest {
     }
 
     @Test
-    public void test2ndLevelCacheWithGet() {
+    public void testGetPost() {
         doInTransaction(session -> {
+            LOGGER.info("Check Post entity is cached after load");
             Post post = (Post) session.get(Post.class, 1L);
         });
         doInTransaction(session -> {
-            LOGGER.info("Check entity is cached after load");
+            LOGGER.info("Check Post entity is cached after load");
             Post post = (Post) session.get(Post.class, 1L);
+        });
+    }
+
+    @Test
+    public void testGetPostDetails() {
+        doInTransaction(session -> {
+            PostDetails postDetails = (PostDetails) session.get(PostDetails.class, 1L);
+        });
+        doInTransaction(session -> {
+            LOGGER.info("Check PostDetails entity is cached after load");
+            PostDetails postDetails = (PostDetails) session.get(PostDetails.class, 1L);
+        });
+    }
+
+    @Test
+    public void testGetComment() {
+        doInTransaction(session -> {
+            Comment comment = (Comment) session.get(Comment.class, 2L);
+        });
+        doInTransaction(session -> {
+            LOGGER.info("Check Comment entity is cached after load");
+            Comment comment = (Comment) session.get(Comment.class, 2L);
+        });
+    }
+
+    @Test
+    public void testGetCommentWithNewComment() {
+        doInTransaction(session -> {
+            Comment comment = (Comment) session.get(Comment.class, 2L);
+        });
+        LOGGER.info("Check Comment entity is cached even after new entity is added");
+        doInTransaction(session -> {
+            Post post = (Post) session.get(Post.class, 1L);
+            Comment newComment = new Comment();
+            newComment.setReview("Thanks for sharing.");
+            post.addComment(newComment);
+            session.flush();
+
+            LOGGER.info("Check Comment entity is cached after load");
+            Comment comment = (Comment) session.get(Comment.class, 2L);
         });
     }
 
