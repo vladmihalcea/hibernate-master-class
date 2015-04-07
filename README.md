@@ -11,13 +11,13 @@ The Integration Tests require some external configurations:
 
 * PostgreSQL
  
- You should install [PostgreSQL](http://www.postgresql.org/download/) 9.3 (or later) and the password for the *postgres* user should be *admin*
+ You should install [PostgreSQL](http://www.postgresql.org/download/) 9.4 (or later) and the password for the *postgres* user should be *admin*
 
- Now you need to reate a *hibernate-master-class* database
+ Now you need to create a *hibernate-master-class* database
 
 * Oracle
  
- You need to download and isntall [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html) 
+ You need to download and install [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html) 
 
  Set the *sys* pasword to *admin*
 
