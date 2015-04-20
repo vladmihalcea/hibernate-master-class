@@ -1,9 +1,10 @@
-package com.vladmihalcea.hibernate.masterclass.laboratory.concurrency;
+package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.StaleObjectStateException;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Immutable;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,16 +12,17 @@ import org.junit.Test;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 
 /**
- * LockModeOptimisticForceIncrementTest - Test to check LockMode.OPTIMISTIC_FORCE_INCREMENT
+ * ReadOnlyCacheConcurrencyStrategyTest - Test to check CacheConcurrencyStrategy.READ_ONLY
  *
  * @author Vlad Mihalcea
  */
-public class LockModeOptimisticForceIncrementTest extends AbstractTest {
+public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -30,56 +32,70 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
         };
     }
 
+    @Override
+    protected Properties getProperties() {
+        Properties properties = super.getProperties();
+        properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
+        properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        return properties;
+    }
+
     @Before
     public void init() {
         super.init();
         doInTransaction(session -> {
-        Repository repository = new Repository("Hibernate-Master-Class");
-        session.persist(repository);
-        session.flush();
+            Repository repository = new Repository("Hibernate-Master-Class");
+            session.persist(repository);
+            session.flush();
         });
     }
 
     @Test
-    public void testOptimisticForceIncrementLocking() throws InterruptedException {
-        LOGGER.info("Test Single OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
+    public void testReadOnlyEntityLoad() {
+        LOGGER.info("Test ReadOnly cache entries cache load ");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
+            assertNotNull(repository);
             Commit commit = new Commit(repository);
             commit.getChanges().add(new Change("README.txt", "0a1,5..."));
             commit.getChanges().add(new Change("web.xml", "17c17..."));
             session.persist(commit);
         });
+        doInTransaction(session -> {
+            LOGGER.info("ReadOnly repository should be loaded from cache ");
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            LOGGER.info("Load ReadOnly commit from database ");
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(2, commit.getChanges().size());
+        });
+        doInTransaction(session -> {
+            LOGGER.info("ReadOnly commit should be loaded from the cache ");
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(2, commit.getChanges().size());
+        });
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testReadOnlyEntityUpdate() {
+        LOGGER.info("Test ReadOnly cache entries cannot be updated ");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            repository.setName("High-Performance Hibernate");
+        });
     }
 
     @Test
-    public void testConcurrentOptimisticForceIncrementLocking() throws InterruptedException {
-        LOGGER.info("Test Concurrent OPTIMISTIC_FORCE_INCREMENT Lock Mode ");
-        try {
-            doInTransaction(session -> {
-                Repository repository = (Repository) session.get(Repository.class, 1L);
-                session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(repository);
-
-                executeSync(() -> {
-                    doInTransaction(_session -> {
-                        Repository _repository = (Repository) _session.get(Repository.class, 1L);
-                        _session.buildLockRequest(new LockOptions(LockMode.OPTIMISTIC_FORCE_INCREMENT)).lock(_repository);
-                        Commit _commit = new Commit(_repository);
-                        _commit.getChanges().add(new Change("index.html", "0a1,2..."));
-                        _session.persist(_commit);
-                    });
-                });
-
-                Commit commit = new Commit(repository);
-                commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-                commit.getChanges().add(new Change("web.xml", "17c17..."));
-                session.persist(commit);
-            });
-            fail("Should have thrown StaleObjectStateException!");
-        } catch (StaleObjectStateException expected) {
-            LOGGER.info("Failure: ", expected);
-        }
+    public void testReadOnlyEntityDelete() {
+        LOGGER.info("Test ReadOnly cache entries can be deleted ");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            assertNotNull(repository);
+            session.delete(repository);
+        });
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            assertNull(repository);
+        });
     }
 
 
@@ -89,7 +105,8 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
      * @author Vlad Mihalcea
      */
     @Entity(name = "repository")
-    @Table(name = "repository")
+    @Cacheable
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
     public static class Repository {
 
         @Id
@@ -105,8 +122,13 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
             this.name = name;
         }
 
-        @Version
-        private int version;
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
 
         public Long getId() {
             return id;
@@ -124,6 +146,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
      */
     @Entity(name = "Commit")
     @Table(name = "commit")
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
     @Immutable
     public static class Commit {
 
@@ -131,7 +154,7 @@ public class LockModeOptimisticForceIncrementTest extends AbstractTest {
         @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
-        @ManyToOne
+        @ManyToOne(fetch = FetchType.LAZY)
         private Repository repository;
 
         @ElementCollection
