@@ -46,24 +46,36 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         doInTransaction(session -> {
             Repository repository = new Repository("Hibernate-Master-Class");
             session.persist(repository);
-            session.flush();
         });
     }
 
     @Test
-    public void testReadOnlyEntityLoad() {
-        LOGGER.info("Test ReadOnly cache entries cache load ");
+    public void testRepositoryEntityLoad() {
+
+        LOGGER.info("ReadOnly entities are read-through");
+
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertNotNull(repository);
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("ReadOnly repository should be loaded from cache ");
+            session.get(Repository.class, 1L);
+        });
+    }
+
+    @Test
+    public void testRepositoryAndCommitLoad() {
+        LOGGER.info("Test ReadOnly collections require separate caching");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
             Commit commit = new Commit(repository);
             commit.getChanges().add(new Change("README.txt", "0a1,5..."));
             commit.getChanges().add(new Change("web.xml", "17c17..."));
             session.persist(commit);
         });
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly repository should be loaded from cache ");
-            Repository repository = (Repository) session.get(Repository.class, 1L);
             LOGGER.info("Load ReadOnly commit from database ");
             Commit commit = (Commit) session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
@@ -75,13 +87,17 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         });
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testReadOnlyEntityUpdate() {
-        LOGGER.info("Test ReadOnly cache entries cannot be updated ");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            repository.setName("High-Performance Hibernate");
-        });
+        try {
+            LOGGER.info("Test ReadOnly cache entries cannot be updated ");
+            doInTransaction(session -> {
+                Repository repository = (Repository) session.get(Repository.class, 1L);
+                repository.setName("High-Performance Hibernate");
+            });
+        } catch (Exception e) {
+            LOGGER.error("Expected", e);
+        }
     }
 
     @Test
@@ -105,7 +121,6 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
      * @author Vlad Mihalcea
      */
     @Entity(name = "repository")
-    @Cacheable
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
     public static class Repository {
 

@@ -49,18 +49,15 @@ public class ReadOnlyCacheConcurrencyStrategyCollectionsTest extends AbstractTes
 
     @Test
     public void testReadOnlyEntityLoad() {
-        LOGGER.info("Test ReadOnly cache entries cache load ");
+        LOGGER.info("Test ReadOnly collections require separate caching");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNotNull(repository);
             Commit commit = new Commit(repository);
             commit.getChanges().add(new Change("README.txt", "0a1,5..."));
             commit.getChanges().add(new Change("web.xml", "17c17..."));
             session.persist(commit);
         });
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly repository should be loaded from cache ");
-            Repository repository = (Repository) session.get(Repository.class, 1L);
             LOGGER.info("Load ReadOnly commit from database ");
             Commit commit = (Commit) session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
@@ -72,37 +69,12 @@ public class ReadOnlyCacheConcurrencyStrategyCollectionsTest extends AbstractTes
         });
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testReadOnlyEntityUpdate() {
-        LOGGER.info("Test ReadOnly cache entries cannot be updated ");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            repository.setName("High-Performance Hibernate");
-        });
-    }
-
-    @Test
-    public void testReadOnlyEntityDelete() {
-        LOGGER.info("Test ReadOnly cache entries can be deleted ");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNotNull(repository);
-            session.delete(repository);
-        });
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNull(repository);
-        });
-    }
-
-
     /**
      * Repository - Repository
      *
      * @author Vlad Mihalcea
      */
     @Entity(name = "repository")
-    @Cacheable
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
     public static class Repository {
 
