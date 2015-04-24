@@ -28,9 +28,11 @@ public class InheritanceGroupByTest extends AbstractTest {
     public void testTree() {
         doInTransaction(session -> {
             session.save(new FirmUser());
-            //List<FirmUser> result = session.createQuery("select distinct a, a.id from FirmUser a order by a.id").list();
-            List<FirmUser> result = session.createQuery("from FirmUser order by id").list();
-            assertEquals(1, result.size());
+            //List<FirmUser> result = session.createQuery("select distinct a from FirmUser a order by a.id").list();
+            List<FirmUser> result1 = (List<FirmUser>) session.createQuery("from FirmUser order by id").list();
+            List<Object[]> result2 = (List<Object[]>) session.createQuery("select distinct a, a.id from FirmUser a order by id").list();
+            assertEquals(1, result1.size());
+            assertEquals(1, result2.size());
         });
     }
 
