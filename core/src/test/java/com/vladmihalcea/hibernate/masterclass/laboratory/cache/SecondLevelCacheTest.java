@@ -64,6 +64,12 @@ public class SecondLevelCacheTest extends AbstractPostgreSQLIntegrationTest {
     @Test
     public void testGetPost() {
         doInTransaction(session -> {
+            LOGGER.info("Load Post entity is cached after load");
+            Post post = (Post) session.load(Post.class, 1L);
+            post.getName();
+        });
+
+        doInTransaction(session -> {
             LOGGER.info("Check Post entity is cached after load");
             Post post = (Post) session.get(Post.class, 1L);
         });
@@ -157,6 +163,7 @@ public class SecondLevelCacheTest extends AbstractPostgreSQLIntegrationTest {
                     .setCacheable(true)
                     .uniqueResult();
         });
+
     }
 
     @Test
