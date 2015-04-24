@@ -52,7 +52,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
     @Test
     public void testRepositoryEntityLoad() {
 
-        LOGGER.info("ReadOnly entities are read-through");
+        LOGGER.info("Read-only entities are read-through");
 
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
@@ -60,29 +60,36 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         });
 
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly repository should be loaded from cache ");
+            LOGGER.info("Load Repository from cache");
             session.get(Repository.class, 1L);
         });
     }
 
     @Test
-    public void testRepositoryAndCommitLoad() {
-        LOGGER.info("Test ReadOnly collections require separate caching");
+    public void testCollectionCache() {
+        LOGGER.info("Collections require separate caching");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                    session.get(Repository.class, 1L);
             Commit commit = new Commit(repository);
-            commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-            commit.getChanges().add(new Change("web.xml", "17c17..."));
+            commit.getChanges().add(
+                    new Change("README.txt", "0a1,5...")
+            );
+            commit.getChanges().add(
+                    new Change("web.xml", "17c17...")
+            );
             session.persist(commit);
         });
         doInTransaction(session -> {
-            LOGGER.info("Load ReadOnly commit from database ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
+            LOGGER.info("Load Commit from database ");
+            Commit commit = (Commit)
+                    session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly commit should be loaded from the cache ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
+            LOGGER.info("Load Commit from cache");
+            Commit commit = (Commit)
+                    session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
     }
@@ -90,7 +97,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
     @Test
     public void testReadOnlyEntityUpdate() {
         try {
-            LOGGER.info("Test ReadOnly cache entries cannot be updated ");
+            LOGGER.info("Read-only cache entries cannot be updated");
             doInTransaction(session -> {
                 Repository repository = (Repository) session.get(Repository.class, 1L);
                 repository.setName("High-Performance Hibernate");
@@ -102,7 +109,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
 
     @Test
     public void testReadOnlyEntityDelete() {
-        LOGGER.info("Test ReadOnly cache entries can be deleted ");
+        LOGGER.info("Read-only cache entries can be deleted");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertNotNull(repository);
