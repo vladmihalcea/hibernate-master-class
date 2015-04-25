@@ -1,6 +1,7 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.inheritance;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
+import org.hibernate.Criteria;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -31,8 +32,18 @@ public class InheritanceGroupByTest extends AbstractTest {
             //List<FirmUser> result = session.createQuery("select distinct a from FirmUser a order by a.id").list();
             List<FirmUser> result1 = (List<FirmUser>) session.createQuery("from FirmUser order by id").list();
             List<Object[]> result2 = (List<Object[]>) session.createQuery("select distinct a, a.id from FirmUser a order by id").list();
+            List<FirmUser> result3 = (List<FirmUser>) session.createSQLQuery(
+                    "select * " +
+                    "from FIRM_USER a " +
+                    "LEFT JOIN BASE_USER b ON a.id = b.id " +
+                    "order by a.id"
+            )
+            .addEntity("a", FirmUser.class)
+            .setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY)
+            .list();
             assertEquals(1, result1.size());
             assertEquals(1, result2.size());
+            assertEquals(1, result3.size());
         });
     }
 
