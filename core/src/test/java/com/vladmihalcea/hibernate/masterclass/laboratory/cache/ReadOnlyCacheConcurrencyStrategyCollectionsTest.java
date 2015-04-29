@@ -151,7 +151,7 @@ public class ReadOnlyCacheConcurrencyStrategyCollectionsTest extends AbstractTes
     }
 
     /**
-     * OrderLine - Order Line
+     * Change - Change
      *
      * @author Vlad Mihalcea
      */

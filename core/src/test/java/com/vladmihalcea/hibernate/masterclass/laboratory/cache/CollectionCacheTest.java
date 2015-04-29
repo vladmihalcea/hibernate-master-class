@@ -2,7 +2,6 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Immutable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -11,15 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 
 /**
- * ReadOnlyCacheConcurrencyStrategyTest - Test to check CacheConcurrencyStrategy.READ_ONLY
+ * CollectionCacheTest - Test to check Collection Cache
  *
  * @author Vlad Mihalcea
  */
-public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
+public class CollectionCacheTest extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -34,6 +33,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         Properties properties = super.getProperties();
         properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
         properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        properties.put("hibernate.cache.default_cache_concurrency_strategy", CacheConcurrencyStrategy.READ_WRITE.name());
         return properties;
     }
 
@@ -43,74 +43,54 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         doInTransaction(session -> {
             Repository repository = new Repository("Hibernate-Master-Class");
             session.persist(repository);
+
+            Commit commit1 = new Commit();
+            commit1.getChanges().add(new Change("README.txt", "0a1,5..."));
+            commit1.getChanges().add(new Change("web.xml", "17c17..."));
+
+            Commit commit2 = new Commit();
+            commit2.getChanges().add(new Change("README.txt", "0b2,5..."));
+
+            repository.addCommit(commit1);
+            repository.addCommit(commit2);
+            session.persist(commit1);
+        });
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            assertEquals(2, repository.getCommits().size());
         });
     }
 
     @Test
-    public void testRepositoryEntityLoad() {
-
-        LOGGER.info("ReadOnly entities are read-through");
-
+    public void testInvalidateEntityCollectionCacheOnRemovingEntries() {
+        LOGGER.info("Test Invalidate entity collection cache on removing entries");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNotNull(repository);
+            assertEquals(2, repository.getCommits().size());
+            repository.removeCommit(repository.getCommits().get(0));
         });
-
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly repository should be loaded from cache ");
-            session.get(Repository.class, 1L);
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            assertEquals(1, repository.getCommits().size());
         });
     }
 
     @Test
-    public void testRepositoryAndCommitLoad() {
-        LOGGER.info("Test ReadOnly collections require separate caching");
+    public void testInvalidateEntityCollectionCacheOnAddingEntries() {
+        LOGGER.info("Test Invalidate entity collection cache on adding entries");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            Commit commit = new Commit(repository);
-            commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-            commit.getChanges().add(new Change("web.xml", "17c17..."));
-            session.persist(commit);
-        });
-        doInTransaction(session -> {
-            LOGGER.info("Load ReadOnly commit from database ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
-            assertEquals(2, commit.getChanges().size());
-        });
-        doInTransaction(session -> {
-            LOGGER.info("ReadOnly commit should be loaded from the cache ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
-            assertEquals(2, commit.getChanges().size());
-        });
-    }
+            assertEquals(2, repository.getCommits().size());
 
-    @Test
-    public void testReadOnlyEntityUpdate() {
-        try {
-            LOGGER.info("Test ReadOnly cache entries cannot be updated ");
-            doInTransaction(session -> {
-                Repository repository = (Repository) session.get(Repository.class, 1L);
-                repository.setName("High-Performance Hibernate");
-            });
-        } catch (Exception e) {
-            LOGGER.error("Expected", e);
-        }
-    }
-
-    @Test
-    public void testReadOnlyEntityDelete() {
-        LOGGER.info("Test ReadOnly cache entries can be deleted ");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNotNull(repository);
-            session.delete(repository);
+            Commit commit = new Commit();
+            commit.getChanges().add(new Change("Main.java", "0b3,17..."));
+            repository.addCommit(commit);
         });
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNull(repository);
+            assertEquals(3, repository.getCommits().size());
         });
     }
-
 
     /**
      * Repository - Repository
@@ -118,7 +98,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
      * @author Vlad Mihalcea
      */
     @Entity(name = "repository")
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     public static class Repository {
 
         @Id
@@ -126,6 +106,10 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         private Long id;
 
         private String name;
+
+        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+        @OneToMany(mappedBy = "repository", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<Commit> commits = new ArrayList<>();
 
         public Repository() {
         }
@@ -149,6 +133,20 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         public void setId(Long id) {
             this.id = id;
         }
+
+        public List<Commit> getCommits() {
+            return commits;
+        }
+
+        public void addCommit(Commit commit) {
+            commits.add(commit);
+            commit.setRepository(this);
+        }
+
+        public void removeCommit(Commit commit) {
+            commits.remove(commit);
+            commit.setRepository(null);
+        }
     }
 
     /**
@@ -158,8 +156,7 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
      */
     @Entity(name = "Commit")
     @Table(name = "commit")
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
-    @Immutable
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     public static class Commit {
 
         @Id
@@ -174,17 +171,18 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
                 name="commit_change",
                 joinColumns=@JoinColumn(name="commit_id")
         )
+        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
         private List<Change> changes = new ArrayList<>();
 
         public Commit() {
         }
 
-        public Commit(Repository repository) {
-            this.repository = repository;
-        }
-
         public Repository getRepository() {
             return repository;
+        }
+
+        public void setRepository(Repository repository) {
+            this.repository = repository;
         }
 
         public List<Change> getChanges() {
