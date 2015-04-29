@@ -48,23 +48,30 @@ public class ReadOnlyCacheConcurrencyStrategyCollectionsTest extends AbstractTes
     }
 
     @Test
-    public void testReadOnlyEntityLoad() {
-        LOGGER.info("Test ReadOnly collections require separate caching");
+    public void testCollectionCache() {
+        LOGGER.info("Collections require separate caching");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                    session.get(Repository.class, 1L);
             Commit commit = new Commit(repository);
-            commit.getChanges().add(new Change("README.txt", "0a1,5..."));
-            commit.getChanges().add(new Change("web.xml", "17c17..."));
+            commit.getChanges().add(
+                    new Change("README.txt", "0a1,5...")
+            );
+            commit.getChanges().add(
+                    new Change("web.xml", "17c17...")
+            );
             session.persist(commit);
         });
         doInTransaction(session -> {
-            LOGGER.info("Load ReadOnly commit from database ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
+            LOGGER.info("Load Commit from database ");
+            Commit commit = (Commit)
+                    session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
         doInTransaction(session -> {
-            LOGGER.info("ReadOnly commit should be loaded from the cache ");
-            Commit commit = (Commit) session.get(Commit.class, 1L);
+            LOGGER.info("Load Commit from cache");
+            Commit commit = (Commit)
+                    session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
     }
