@@ -1,6 +1,7 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
+import org.hibernate.ObjectNotFoundException;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 
 /**
@@ -57,13 +59,15 @@ public class CollectionCacheTest extends AbstractTest {
         });
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertEquals(2, repository.getCommits().size());
+            for (Commit commit : repository.getCommits()) {
+                assertFalse(commit.getChanges().isEmpty());
+            }
         });
     }
 
     @Test
     public void testInvalidateEntityCollectionCacheOnRemovingEntries() {
-        LOGGER.info("Test Invalidate entity collection cache on removing entries");
+        LOGGER.info("Invalidate entity collection cache on removing entries");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertEquals(2, repository.getCommits().size());
@@ -77,7 +81,7 @@ public class CollectionCacheTest extends AbstractTest {
 
     @Test
     public void testInvalidateEntityCollectionCacheOnAddingEntries() {
-        LOGGER.info("Test Invalidate entity collection cache on adding entries");
+        LOGGER.info("Invalidate entity collection cache on adding entries");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertEquals(2, repository.getCommits().size());
@@ -92,12 +96,57 @@ public class CollectionCacheTest extends AbstractTest {
         });
     }
 
+    @Test
+    public void testConsistencyIssuesWhenRemovingChildDirectly() {
+        LOGGER.info("Removing a Child directly may cause inconsistencies");
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            session.delete(commit);
+        });
+        try {
+            doInTransaction(session -> {
+                Repository repository = (Repository) session.get(Repository.class, 1L);
+                assertEquals(1, repository.getCommits().size());
+            });
+        } catch (ObjectNotFoundException e) {
+            LOGGER.warn("Object not found", e);
+        }
+    }
+
+    @Test
+    public void testInvalidateEmbeddableCollectionCacheOnRemovingEntries() {
+        LOGGER.info("Invalidate embeddable collection cache on removing entries");
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(2, commit.getChanges().size());
+            commit.getChanges().remove(0);
+        });
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(1, commit.getChanges().size());
+        });
+    }
+
+    @Test
+    public void testInvalidateEmbeddableCollectionCacheOnAddingEntries() {
+        LOGGER.info("Invalidate embeddable collection cache on adding entries");
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(2, commit.getChanges().size());
+            commit.getChanges().add(new Change("Main.java", "0b3,17..."));
+        });
+        doInTransaction(session -> {
+            Commit commit = (Commit) session.get(Commit.class, 1L);
+            assertEquals(3, commit.getChanges().size());
+        });
+    }
+
     /**
      * Repository - Repository
      *
      * @author Vlad Mihalcea
      */
-    @Entity(name = "repository")
+    @Entity(name = "Repository")
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     public static class Repository {
 
@@ -172,6 +221,7 @@ public class CollectionCacheTest extends AbstractTest {
                 joinColumns=@JoinColumn(name="commit_id")
         )
         @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+        //@CollectionId(columns = @Column(name = "id"), type = @Type(type = "long"), generator = "sequence")
         private List<Change> changes = new ArrayList<>();
 
         public Commit() {
