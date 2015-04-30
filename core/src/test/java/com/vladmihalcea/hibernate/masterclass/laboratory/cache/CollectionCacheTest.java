@@ -221,7 +221,7 @@ public class CollectionCacheTest extends AbstractTest {
                 joinColumns=@JoinColumn(name="commit_id")
         )
         @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-        //@CollectionId(columns = @Column(name = "id"), type = @Type(type = "long"), generator = "sequence")
+        @OrderColumn(name = "index_id")
         private List<Change> changes = new ArrayList<>();
 
         public Commit() {
@@ -248,8 +248,10 @@ public class CollectionCacheTest extends AbstractTest {
     @Embeddable
     public static class Change {
 
+        @Column(name = "path", nullable = false)
         private String path;
 
+        @Column(name = "diff", nullable = false)
         private String diff;
 
         public Change() {
