@@ -127,6 +127,12 @@ public class CollectionCacheTest extends AbstractTest {
     public void testConsistencyIssuesWhenHQLUpdating() {
         LOGGER.info("Updating Child entities using HQL");
         doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            for (Commit commit : repository.getCommits()) {
+                assertFalse(commit.review);
+            }
+        });
+        doInTransaction(session -> {
             session.createQuery("update Commit c set c.review = true ").executeUpdate();
         });
         doInTransaction(session -> {
@@ -140,6 +146,12 @@ public class CollectionCacheTest extends AbstractTest {
     @Test
     public void testConsistencyIssuesWhenSQLUpdating() {
         LOGGER.info("Updating Child entities using SQL");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            for (Commit commit : repository.getCommits()) {
+                assertFalse(commit.review);
+            }
+        });
         doInTransaction(session -> {
             session.createSQLQuery("update Commit c set c.review = true ").executeUpdate();
         });
