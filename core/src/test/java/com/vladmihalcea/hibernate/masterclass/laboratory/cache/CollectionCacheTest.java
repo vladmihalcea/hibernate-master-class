@@ -13,6 +13,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -66,6 +67,15 @@ public class CollectionCacheTest extends AbstractTest {
     }
 
     @Test
+    public void testLoadFromCollectionCache() {
+        LOGGER.info("Load entity collection from");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            assertEquals(2, repository.getCommits().size());
+        });
+    }
+
+    @Test
     public void testInvalidateEntityCollectionCacheOnRemovingEntries() {
         LOGGER.info("Invalidate entity collection cache on removing entries");
         doInTransaction(session -> {
@@ -111,6 +121,34 @@ public class CollectionCacheTest extends AbstractTest {
         } catch (ObjectNotFoundException e) {
             LOGGER.warn("Object not found", e);
         }
+    }
+
+    @Test
+    public void testConsistencyIssuesWhenHQLUpdating() {
+        LOGGER.info("Updating Child entities using HQL");
+        doInTransaction(session -> {
+            session.createQuery("update Commit c set c.review = true ").executeUpdate();
+        });
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            for(Commit commit : repository.getCommits()) {
+                assertTrue(commit.review);
+            }
+        });
+    }
+
+    @Test
+    public void testConsistencyIssuesWhenSQLUpdating() {
+        LOGGER.info("Updating Child entities using SQL");
+        doInTransaction(session -> {
+            session.createSQLQuery("update Commit c set c.review = true ").executeUpdate();
+        });
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            for(Commit commit : repository.getCommits()) {
+                assertTrue(commit.review);
+            }
+        });
     }
 
     @Test
@@ -211,6 +249,8 @@ public class CollectionCacheTest extends AbstractTest {
         @Id
         @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
+
+        private boolean review;
 
         @ManyToOne(fetch = FetchType.LAZY)
         private Repository repository;
