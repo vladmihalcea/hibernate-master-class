@@ -36,7 +36,6 @@ public class CollectionCacheTest extends AbstractTest {
         Properties properties = super.getProperties();
         properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
         properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
-        properties.put("hibernate.cache.default_cache_concurrency_strategy", CacheConcurrencyStrategy.READ_WRITE.name());
         return properties;
     }
 
@@ -59,6 +58,7 @@ public class CollectionCacheTest extends AbstractTest {
             session.persist(commit1);
         });
         doInTransaction(session -> {
+            LOGGER.info("Load collections for the first time");
             Repository repository = (Repository) session.get(Repository.class, 1L);
             for (Commit commit : repository.getCommits()) {
                 assertFalse(commit.getChanges().isEmpty());
@@ -68,7 +68,7 @@ public class CollectionCacheTest extends AbstractTest {
 
     @Test
     public void testLoadFromCollectionCache() {
-        LOGGER.info("Load entity collection from");
+        LOGGER.info("Load collections from cache");
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertEquals(2, repository.getCommits().size());
