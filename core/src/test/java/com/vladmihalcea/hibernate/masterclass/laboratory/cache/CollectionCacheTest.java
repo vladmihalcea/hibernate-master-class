@@ -3,10 +3,14 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.ObjectNotFoundException;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.jdbc.Work;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.persistence.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -76,39 +80,45 @@ public class CollectionCacheTest extends AbstractTest {
     }
 
     @Test
-    public void testInvalidateEntityCollectionCacheOnRemovingEntries() {
-        LOGGER.info("Invalidate entity collection cache on removing entries");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertEquals(2, repository.getCommits().size());
-            repository.removeCommit(repository.getCommits().get(0));
-        });
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertEquals(1, repository.getCommits().size());
-        });
-    }
-
-    @Test
     public void testInvalidateEntityCollectionCacheOnAddingEntries() {
-        LOGGER.info("Invalidate entity collection cache on adding entries");
+        LOGGER.info("Adding invalidates Collection Cache");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                    session.get(Repository.class, 1L);
             assertEquals(2, repository.getCommits().size());
 
             Commit commit = new Commit();
-            commit.getChanges().add(new Change("Main.java", "0b3,17..."));
+            commit.getChanges().add(
+                    new Change("Main.java", "0b3,17...")
+            );
             repository.addCommit(commit);
         });
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
             assertEquals(3, repository.getCommits().size());
         });
     }
 
     @Test
+    public void testInvalidateEntityCollectionCacheOnRemovingEntries() {
+        LOGGER.info("Removing invalidates Collection Cache");
+        doInTransaction(session -> {
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
+            assertEquals(2, repository.getCommits().size());
+            repository.removeCommit(repository.getCommits().get(0));
+        });
+        doInTransaction(session -> {
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
+            assertEquals(1, repository.getCommits().size());
+        });
+    }
+
+    @Test
     public void testConsistencyIssuesWhenRemovingChildDirectly() {
-        LOGGER.info("Removing a Child directly may cause inconsistencies");
+        LOGGER.info("Removing Child causes inconsistencies");
         doInTransaction(session -> {
             Commit commit = (Commit) session.get(Commit.class, 1L);
             session.delete(commit);
@@ -124,19 +134,24 @@ public class CollectionCacheTest extends AbstractTest {
     }
 
     @Test
-    public void testConsistencyIssuesWhenHQLUpdating() {
+    public void testConsistencyWhenHQLUpdating() {
         LOGGER.info("Updating Child entities using HQL");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                 session.get(Repository.class, 1L);
             for (Commit commit : repository.getCommits()) {
                 assertFalse(commit.review);
             }
         });
         doInTransaction(session -> {
-            session.createQuery("update Commit c set c.review = true ").executeUpdate();
+            session.createQuery(
+                    "update Commit c " +
+                            "set c.review = true ")
+                    .executeUpdate();
         });
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
             for(Commit commit : repository.getCommits()) {
                 assertTrue(commit.review);
             }
@@ -144,20 +159,59 @@ public class CollectionCacheTest extends AbstractTest {
     }
 
     @Test
-    public void testConsistencyIssuesWhenSQLUpdating() {
+    public void testConsistencyWhenSQLUpdating() {
         LOGGER.info("Updating Child entities using SQL");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
             for (Commit commit : repository.getCommits()) {
                 assertFalse(commit.review);
             }
         });
         doInTransaction(session -> {
-            session.createSQLQuery("update Commit c set c.review = true ").executeUpdate();
+            session.createSQLQuery(
+                    "update Commit c " +
+                            "set c.review = true ")
+            .executeUpdate();
         });
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
             for(Commit commit : repository.getCommits()) {
+                assertTrue(commit.review);
+            }
+        });
+    }
+
+    @Test
+    public void testConsistencyWhenManuallySQLUpdating() {
+        LOGGER.info("Manually updating Child entities using SQL");
+        final Repository repository = doInTransaction(session -> {
+            Repository _repository = (Repository)
+                    session.get(Repository.class, 1L);
+            for (Commit commit : _repository.getCommits()) {
+                assertFalse(commit.review);
+            }
+            return _repository;
+        });
+        doInTransaction(session -> {
+            session.doWork(connection -> {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "update Commit c " +
+                                "set c.review = true "
+                )) {
+                    statement.executeUpdate();
+                }
+            });
+            session.getSessionFactory().getCache().evictCollection(
+                Repository.class.getName() + ".commits",
+                repository.getId()
+            );
+        });
+        doInTransaction(session -> {
+            Repository _repository = (Repository)
+                    session.get(Repository.class, 1L);
+            for(Commit commit : _repository.getCommits()) {
                 assertTrue(commit.review);
             }
         });
