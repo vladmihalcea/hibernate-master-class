@@ -80,6 +80,7 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
     public void testRepositoryEntityUpdate() throws InterruptedException {
         LOGGER.info("Read-write entities are write-through on updating");
         doInTransaction(session -> {
+            LOGGER.info("Load and modify Repository from Alice's transaction");
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertTrue(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
             repository.setName("High-Performance Hibernate");
