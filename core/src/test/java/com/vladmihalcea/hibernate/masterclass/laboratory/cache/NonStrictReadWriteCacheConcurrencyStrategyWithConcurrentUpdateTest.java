@@ -35,7 +35,7 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
         };
     }
 
-    private AtomicBoolean ready = new AtomicBoolean();
+    private AtomicBoolean applyInterceptor = new AtomicBoolean();
     private final CountDownLatch endLatch = new CountDownLatch(1);
 
     @Override
@@ -43,12 +43,13 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
         return new EmptyInterceptor() {
             @Override
             public void beforeTransactionCompletion(Transaction tx) {
-                if(ready.get()) {
+                if(applyInterceptor.get()) {
                     LOGGER.info("Fetch Repository from another transaction");
                     assertFalse(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
                     executeSync(() -> {
                         Session _session = getSessionFactory().openSession();
-                        _session.get(Repository.class, 1L);
+                        Repository repository = (Repository) _session.get(Repository.class, 1L);
+                        LOGGER.info("Cached Repository from Bob's transaction {}", repository);
                         _session.close();
                         endLatch.countDown();
                     });
@@ -82,10 +83,15 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
             Repository repository = (Repository) session.get(Repository.class, 1L);
             assertTrue(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
             repository.setName("High-Performance Hibernate");
-            ready.set(true);
+            applyInterceptor.set(true);
         });
         endLatch.await();
         assertFalse(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
+        doInTransaction(session -> {
+            applyInterceptor.set(false);
+            Repository repository = (Repository) session.get(Repository.class, 1L);
+            LOGGER.info("Cached Repository from Alice's transaction {}", repository);
+        });
     }
 
     /**
@@ -124,6 +130,14 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
 
         public void setId(Long id) {
             this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            return "Repository{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    '}';
         }
     }
 }
