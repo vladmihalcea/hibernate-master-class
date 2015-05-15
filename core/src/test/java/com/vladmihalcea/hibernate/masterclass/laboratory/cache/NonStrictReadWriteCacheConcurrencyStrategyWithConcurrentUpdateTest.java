@@ -36,27 +36,34 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
     }
 
     private AtomicBoolean applyInterceptor = new AtomicBoolean();
+
     private final CountDownLatch endLatch = new CountDownLatch(1);
+
+    private class BobTransaction extends EmptyInterceptor {
+        @Override
+        public void beforeTransactionCompletion(Transaction tx) {
+            if(applyInterceptor.get()) {
+                LOGGER.info("Fetch Repository from another transaction");
+                assertFalse(getSessionFactory().getCache()
+                    .containsEntity(Repository.class, 1L));
+                executeSync(() -> {
+                    Session _session = getSessionFactory().openSession();
+                    Repository repository = (Repository)
+                        _session.get(Repository.class, 1L);
+                    LOGGER.info("Cached Repository from Bob's transaction {}",
+                        repository);
+                    _session.close();
+                    endLatch.countDown();
+                });
+                assertTrue(getSessionFactory().getCache()
+                    .containsEntity(Repository.class, 1L));
+            }
+        }
+    }
 
     @Override
     protected Interceptor interceptor() {
-        return new EmptyInterceptor() {
-            @Override
-            public void beforeTransactionCompletion(Transaction tx) {
-                if(applyInterceptor.get()) {
-                    LOGGER.info("Fetch Repository from another transaction");
-                    assertFalse(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
-                    executeSync(() -> {
-                        Session _session = getSessionFactory().openSession();
-                        Repository repository = (Repository) _session.get(Repository.class, 1L);
-                        LOGGER.info("Cached Repository from Bob's transaction {}", repository);
-                        _session.close();
-                        endLatch.countDown();
-                    });
-                    assertTrue(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
-                }
-            }
-        };
+        return new BobTransaction();
     }
 
     @Override
@@ -78,20 +85,23 @@ public class NonStrictReadWriteCacheConcurrencyStrategyWithConcurrentUpdateTest 
 
     @Test
     public void testRepositoryEntityUpdate() throws InterruptedException {
-        LOGGER.info("Read-write entities are write-through on updating");
         doInTransaction(session -> {
-            LOGGER.info("Load and modify Repository from Alice's transaction");
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertTrue(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
+            LOGGER.info("Load and modify Repository");
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
+            assertTrue(getSessionFactory().getCache()
+                .containsEntity(Repository.class, 1L));
             repository.setName("High-Performance Hibernate");
             applyInterceptor.set(true);
         });
         endLatch.await();
-        assertFalse(getSessionFactory().getCache().containsEntity(Repository.class, 1L));
+        assertFalse(getSessionFactory().getCache()
+            .containsEntity(Repository.class, 1L));
         doInTransaction(session -> {
             applyInterceptor.set(false);
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            LOGGER.info("Cached Repository from Alice's transaction {}", repository);
+            Repository repository = (Repository)
+                session.get(Repository.class, 1L);
+            LOGGER.info("Cached Repository {}", repository);
         });
     }
 
