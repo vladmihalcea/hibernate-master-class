@@ -2,13 +2,13 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.Immutable;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -25,7 +25,8 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[] {
-                Repository.class
+                Repository.class,
+                Commit.class
         };
     }
 
@@ -37,25 +38,24 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
         return properties;
     }
 
+    private Repository repositoryReference;
+
     @Before
     public void init() {
         super.init();
-        doInTransaction(session -> {
+        repositoryReference = doInTransaction(session -> {
+            LOGGER.info("Read-write entities are write-through on persisting");
             Repository repository = new Repository("Hibernate-Master-Class");
+            Commit commit = new Commit(repositoryReference);
+            commit.getChanges().add(
+                    new Change("README.txt", "0a1,5...")
+            );
+            commit.getChanges().add(
+                    new Change("web.xml", "17c17...")
+            );
+            repository.addCommit(commit);
             session.persist(repository);
-        });
-    }
-
-    @Test
-    public void testRepositoryEntityLoad() {
-        LOGGER.info("Read-write entities are read-through on persisting");
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertNotNull(repository);
-        });
-        doInTransaction(session -> {
-            LOGGER.info("Load Repository from cache");
-            session.get(Repository.class, 1L);
+            return repository;
         });
     }
 
@@ -63,17 +63,18 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
     public void testRepositoryEntityUpdate() {
         LOGGER.info("Read-write entities are write-through on updating");
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            Repository repository = (Repository) session.get(Repository.class, repositoryReference.getId());
             repository.setName("High-Performance Hibernate");
+            for(Commit commit : repository.commits) {
+                for(Change change : commit.changes) {
+                    assertNotNull(change.getDiff());
+                }
+            }
         });
         doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
+            LOGGER.info("Reload entity after updating");
+            Repository repository = (Repository) session.get(Repository.class, repositoryReference.getId());
             assertEquals("High-Performance Hibernate", repository.getName());
-            repository.setName("High-Performance Hibernate Book");
-        });
-        doInTransaction(session -> {
-            Repository repository = (Repository) session.get(Repository.class, 1L);
-            assertEquals("High-Performance Hibernate Book", repository.getName());
         });
     }
 
@@ -87,10 +88,14 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
     public static class Repository {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.AUTO)
+        @GeneratedValue(strategy = GenerationType.SEQUENCE)
         private Long id;
 
         private String name;
+
+        @OneToMany(mappedBy = "repository", cascade = CascadeType.ALL)
+        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+        private List<Commit> commits = new ArrayList<>();
 
         public Repository() {
         }
@@ -113,6 +118,82 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
 
         public void setId(Long id) {
             this.id = id;
+        }
+
+        public void addCommit(Commit commit) {
+            commits.add(commit);
+            commit.repository = this;
+        }
+    }
+
+    /**
+     * Commit - Commit
+     *
+     * @author Vlad Mihalcea
+     */
+    @Entity(name = "Commit")
+    @Table(name = "commit")
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @Immutable
+    public static class Commit {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.SEQUENCE)
+        private Long id;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        private Repository repository;
+
+        @ElementCollection
+        @CollectionTable(
+                name="commit_change",
+                joinColumns=@JoinColumn(name="commit_id")
+        )
+        @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+        private List<Change> changes = new ArrayList<>();
+
+        public Commit() {
+        }
+
+        public Commit(Repository repository) {
+            this.repository = repository;
+        }
+
+        public Repository getRepository() {
+            return repository;
+        }
+
+        public List<Change> getChanges() {
+            return changes;
+        }
+    }
+
+    /**
+     * Change - Change
+     *
+     * @author Vlad Mihalcea
+     */
+    @Embeddable
+    public static class Change {
+
+        private String path;
+
+        private String diff;
+
+        public Change() {
+        }
+
+        public Change(String path, String diff) {
+            this.path = path;
+            this.diff = diff;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public String getDiff() {
+            return diff;
         }
     }
 }
