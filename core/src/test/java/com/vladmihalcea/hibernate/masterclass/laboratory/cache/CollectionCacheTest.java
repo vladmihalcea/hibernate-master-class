@@ -107,7 +107,8 @@ public class CollectionCacheTest extends AbstractTest {
             Repository repository = (Repository)
                 session.get(Repository.class, 1L);
             assertEquals(2, repository.getCommits().size());
-            repository.removeCommit(repository.getCommits().get(0));
+            Commit removable = repository.getCommits().get(0);
+            repository.removeCommit(removable);
         });
         doInTransaction(session -> {
             Repository repository = (Repository)
@@ -170,8 +171,9 @@ public class CollectionCacheTest extends AbstractTest {
         });
         doInTransaction(session -> {
             session.createSQLQuery(
-                    "update Commit c " +
-                            "set c.review = true ")
+                "update Commit c " +
+                "set c.review = true ")
+                    .addSynchronizedEntityClass(Commit.class)
             .executeUpdate();
         });
         doInTransaction(session -> {
