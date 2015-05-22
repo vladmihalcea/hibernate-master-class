@@ -17,7 +17,6 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -69,9 +68,7 @@ public class ReadWriteCacheConcurrencyStrategyWithLockTimeoutTest extends Abstra
     }
 
     @Test
-    public void testRepositoryEntityUpdate() throws InterruptedException {
-        long timeout = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        LOGGER.info("Read-write entities are write-through on updating");
+    public void testRepositoryEntityUpdate() {
         try {
             doInTransaction(session -> {
                 Repository repository = (Repository) session.get(Repository.class, 1L);
@@ -83,34 +80,43 @@ public class ReadWriteCacheConcurrencyStrategyWithLockTimeoutTest extends Abstra
         }
         applyInterceptor.set(false);
 
-        AtomicReference<Object> entryReference = new AtomicReference<>();
-        AtomicBoolean hasChanged = new AtomicBoolean();
+        AtomicReference<Object> previousCacheEntryReference = new AtomicReference<>();
+        AtomicBoolean cacheEntryChanged = new AtomicBoolean();
 
-        while (entryReference.get() == null || !hasChanged.get()) {
+        while (!cacheEntryChanged.get()) {
             doInTransaction(session -> {
-                Repository repository = (Repository) session.get(Repository.class, 1L);
-                EntityPersister entityPersister = ((SessionFactoryImplementor) getSessionFactory()).getEntityPersister(Repository.class.getName() );
-                EntityRegion region = entityPersister.getCacheAccessStrategy().getRegion();
-                Field cacheField = getField(region.getClass(), "cache");
+                boolean entryChange;
+                session.get(Repository.class, 1L);
                 try {
-                    net.sf.ehcache.Cache cache = (net.sf.ehcache.Cache) cacheField.get(region);
-                    Object entry = entryReference.get();
-                    Object _entry = cache.get(cacheKey(1L, entityPersister));
-                    if(entry != null) {
-                        hasChanged.set(entry != _entry);
+                    Object previousCacheEntry = previousCacheEntryReference.get();
+                    Object cacheEntry = getCacheEntry(Repository.class, 1L);
+                    entryChange = previousCacheEntry != null &&
+                        previousCacheEntry != cacheEntry;
+                    previousCacheEntryReference.set(cacheEntry);
+                    LOGGER.info("Cache entry {}", ToStringBuilder.reflectionToString(cacheEntry));
+                    if(!entryChange) {
+                        sleep(100);
+                    } else {
+                        cacheEntryChanged.set(true);
                     }
-                    entryReference.set(_entry);
-                    LOGGER.info("Cache entry {}", ToStringBuilder.reflectionToString(_entry));
-                } catch (Exception e) {
+                } catch (IllegalAccessException e) {
                     LOGGER.error("Error accessing Cache", e);
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                 }
             });
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getCacheEntry(Class<T> clazz, Long id) throws IllegalAccessException {
+        EntityPersister entityPersister = ((SessionFactoryImplementor) getSessionFactory()).getEntityPersister(clazz.getName() );
+        return (T) getCache(clazz).get(cacheKey(1L, entityPersister));
+    }
+
+    private net.sf.ehcache.Cache getCache(Class clazz) throws IllegalAccessException {
+        EntityPersister entityPersister = ((SessionFactoryImplementor) getSessionFactory()).getEntityPersister(clazz.getName() );
+        EntityRegion region = entityPersister.getCacheAccessStrategy().getRegion();
+        Field cacheField = getField(region.getClass(), "cache");
+        return  (net.sf.ehcache.Cache) cacheField.get(region);
     }
 
     private Field getField(Class clazz, String fieldName) {

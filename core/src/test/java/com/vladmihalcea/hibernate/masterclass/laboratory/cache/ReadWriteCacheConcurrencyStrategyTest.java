@@ -13,6 +13,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 
 /**
@@ -75,6 +76,18 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
             LOGGER.info("Reload entity after updating");
             Repository repository = (Repository) session.get(Repository.class, repositoryReference.getId());
             assertEquals("High-Performance Hibernate", repository.getName());
+        });
+    }
+
+    @Test
+    public void testRepositoryEntityDelete() {
+        LOGGER.info("Read-write entities are deletable");
+        doInTransaction(session -> {
+            Repository repository = (Repository) session.get(Repository.class, repositoryReference.getId());
+            session.delete(repository);
+        });
+        doInTransaction(session -> {
+            assertNull(session.get(Repository.class, repositoryReference.getId()));
         });
     }
 
