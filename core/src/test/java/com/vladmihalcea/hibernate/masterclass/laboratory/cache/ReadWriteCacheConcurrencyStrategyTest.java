@@ -47,7 +47,7 @@ public class ReadWriteCacheConcurrencyStrategyTest extends AbstractTest {
         repositoryReference = doInTransaction(session -> {
             LOGGER.info("Read-write entities are write-through on persisting");
             Repository repository = new Repository("Hibernate-Master-Class");
-            Commit commit = new Commit(repositoryReference);
+            Commit commit = new Commit(repository);
             commit.getChanges().add(
                     new Change("README.txt", "0a1,5...")
             );
