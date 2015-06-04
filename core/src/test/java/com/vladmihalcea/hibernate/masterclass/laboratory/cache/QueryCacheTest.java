@@ -13,6 +13,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * SecondLevelCacheTest - Test to check the 2nd level cache
  *
@@ -24,6 +28,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     protected Class<?>[] entities() {
         return new Class<?>[]{
                 Post.class,
+                User.class,
         };
     }
 
@@ -40,8 +45,9 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     public void init() {
         super.init();
         doInTransaction(session -> {
-            Post post = new Post();
-            post.setName("Hibernate Master Class");
+            User user = new User("Vlad");
+            session.persist(user);
+            Post post = new Post("Hibernate Master Class", user);
             session.persist(post);
         });
     }
@@ -52,7 +58,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
         super.destroy();
     }
 
-    @SuppressWarnings("ucnhecked")
+    @SuppressWarnings("unchecked")
     private List<Post> getLatestPosts(Session session) {
         return (List<Post>) session.createQuery(
             "select p " +
@@ -63,7 +69,32 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
             .list();
     }
 
+    @SuppressWarnings("unchecked")
+    private List<Post> getLatestPostsByUserId(Session session) {
+        return (List<Post>) session.createQuery(
+            "select p " +
+                    "from Post p " +
+                    "where p.author.id = :authorId " +
+                    "order by p.createdOn desc")
+            .setParameter("authorId", 1L)
+            .setMaxResults(10)
+            .setCacheable(true)
+            .list();
+    }
 
+    @SuppressWarnings("unchecked")
+    private List<Post> getLatestPostsByUser(Session session) {
+        User author = (User) session.get(User.class, 1L);
+        return (List<Post>) session.createQuery(
+                "select p " +
+                        "from Post p " +
+                        "where p.author = :author " +
+                        "order by p.createdOn desc")
+                .setParameter("author", author)
+                .setMaxResults(10)
+                .setCacheable(true)
+                .list();
+    }
 
     @Test
     public void test2ndLevelCacheWithQuery() {
@@ -83,8 +114,20 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
             post.setName("High-Performance Hibernate");
             session.flush();
 
-            LOGGER.info("Check query entity query is invalidated");
+            LOGGER.info("Check query cache is invalidated");
             posts = getLatestPosts(session);
+        });
+    }
+
+    @Test
+    public void test2ndLevelCacheWithParameters() {
+        doInTransaction(session -> {
+            List<Post> posts = getLatestPostsByUserId(session);
+            assertEquals(1, posts.size());
+        });
+        doInTransaction(session -> {
+            List<Post> posts = getLatestPostsByUser(session);
+            assertEquals(1, posts.size());
         });
     }
 
@@ -102,13 +145,69 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
             session.persist(newPost);
             session.flush();
 
-            LOGGER.info("Check query entity query is invalidated");
+            LOGGER.info("Check query cache is invalidated");
             List<Post> posts = getLatestPosts(session);
         });
     }
 
+    @Test
+    public void test2ndLevelCacheWithNativeQueryInvalidation() {
+        doInTransaction(session -> {
+            List<Post> posts = getLatestPosts(session);
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("Execute native query");
+
+            assertEquals(1, session.createSQLQuery("update Author set name = '\"'||name||'\"' ").executeUpdate());
+
+            LOGGER.info("Check query cache is invalidated");
+            List<Post> posts = getLatestPosts(session);
+        });
+    }
+
+    @Test
+    public void test2ndLevelCacheWithNativeQuerySynchronization() {
+        doInTransaction(session -> {
+            List<Post> posts = getLatestPosts(session);
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("Execute native query with synchronization");
+
+            assertEquals(1, session
+                    .createSQLQuery("update Author set name = '\"'||name||'\"' ")
+                    .addSynchronizedEntityClass(User.class)
+                    .executeUpdate());
+
+            LOGGER.info("Check query cache is not invalidated");
+            List<Post> posts = getLatestPosts(session);
+        });
+    }
+
+    @Entity(name = "Author")
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
+    public static class User {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+
+        private String name;
+
+        public User() {
+        }
+
+        public User(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
     @Entity(name = "Post")
-    @Cacheable
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     public static class Post {
 
@@ -122,6 +221,17 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
         @Temporal(TemporalType.TIMESTAMP)
         private Date createdOn = new Date();
 
+        @ManyToOne
+        private User author;
+
+        public Post() {
+        }
+
+        public Post(String name, User author) {
+            this.name = name;
+            this.author = author;
+        }
+
         public Date getCreatedOn() {
             return createdOn;
         }
@@ -132,6 +242,10 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public User getAuthor() {
+            return author;
         }
     }
 }
