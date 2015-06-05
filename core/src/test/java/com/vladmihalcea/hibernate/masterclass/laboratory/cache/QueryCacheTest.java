@@ -1,6 +1,7 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.cache;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.junit.After;
@@ -8,7 +9,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -18,17 +18,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * SecondLevelCacheTest - Test to check the 2nd level cache
+ * QueryCacheTest - Test to check the 2nd level query cache
  *
  * @author Vlad Mihalcea
  */
-public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
+public class QueryCacheTest extends AbstractTest {
 
     @Override
     protected Class<?>[] entities() {
         return new Class<?>[]{
                 Post.class,
-                User.class,
+                Author.class,
         };
     }
 
@@ -36,8 +36,8 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     protected Properties getProperties() {
         Properties properties = super.getProperties();
         properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
-        properties.put("hibernate.cache.use_query_cache", Boolean.TRUE.toString());
         properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        properties.put("hibernate.cache.use_query_cache", Boolean.TRUE.toString());
         return properties;
     }
 
@@ -45,9 +45,9 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     public void init() {
         super.init();
         doInTransaction(session -> {
-            User user = new User("Vlad");
-            session.persist(user);
-            Post post = new Post("Hibernate Master Class", user);
+            Author author = new Author("Vlad");
+            session.persist(author);
+            Post post = new Post("Hibernate Master Class", author);
             session.persist(post);
         });
     }
@@ -63,6 +63,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
         return (List<Post>) session.createQuery(
             "select p " +
             "from Post p " +
+            "join p.author a " +
             "order by p.createdOn desc")
             .setMaxResults(10)
             .setCacheable(true)
@@ -70,11 +71,12 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Post> getLatestPostsByUserId(Session session) {
+    private List<Post> getLatestPostsByAuthorId(Session session) {
         return (List<Post>) session.createQuery(
             "select p " +
                     "from Post p " +
-                    "where p.author.id = :authorId " +
+                    "join p.author a " +
+                    "where a.id = :authorId " +
                     "order by p.createdOn desc")
             .setParameter("authorId", 1L)
             .setMaxResults(10)
@@ -83,12 +85,13 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Post> getLatestPostsByUser(Session session) {
-        User author = (User) session.get(User.class, 1L);
+    private List<Post> getLatestPostsByAuthor(Session session) {
+        Author author = (Author) session.get(Author.class, 1L);
         return (List<Post>) session.createQuery(
                 "select p " +
                         "from Post p " +
-                        "where p.author = :author " +
+                        "join p.author a " +
+                        "where a = :author " +
                         "order by p.createdOn desc")
                 .setParameter("author", author)
                 .setMaxResults(10)
@@ -99,34 +102,32 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
     @Test
     public void test2ndLevelCacheWithQuery() {
         doInTransaction(session -> {
+            LOGGER.info("Evict regions and run query");
+            session.getSessionFactory().getCache().evictAllRegions();
             List<Post> posts = getLatestPosts(session);
         });
 
         doInTransaction(session -> {
-            LOGGER.info("Check get entity is cached after query");
+            LOGGER.info("Check get entity is cached");
             Post post = (Post) session.get(Post.class, 1L);
         });
 
         doInTransaction(session -> {
-            LOGGER.info("Check query entity is cached after query");
+            LOGGER.info("Check query is cached");
             List<Post> posts = getLatestPosts(session);
-            Post post = posts.get(0);
-            post.setName("High-Performance Hibernate");
-            session.flush();
-
-            LOGGER.info("Check query cache is invalidated");
-            posts = getLatestPosts(session);
         });
     }
 
     @Test
     public void test2ndLevelCacheWithParameters() {
         doInTransaction(session -> {
-            List<Post> posts = getLatestPostsByUserId(session);
+            LOGGER.info("Query cache with basic type parameter");
+            List<Post> posts = getLatestPostsByAuthorId(session);
             assertEquals(1, posts.size());
         });
         doInTransaction(session -> {
-            List<Post> posts = getLatestPostsByUser(session);
+            LOGGER.info("Query cache with entity type parameter");
+            List<Post> posts = getLatestPostsByAuthor(session);
             assertEquals(1, posts.size());
         });
     }
@@ -177,7 +178,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
 
             assertEquals(1, session
                     .createSQLQuery("update Author set name = '\"'||name||'\"' ")
-                    .addSynchronizedEntityClass(User.class)
+                    .addSynchronizedEntityClass(Author.class)
                     .executeUpdate());
 
             LOGGER.info("Check query cache is not invalidated");
@@ -187,7 +188,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
 
     @Entity(name = "Author")
     @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
-    public static class User {
+    public static class Author {
 
         @Id
         @GeneratedValue(strategy = GenerationType.AUTO)
@@ -195,10 +196,10 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
 
         private String name;
 
-        public User() {
+        public Author() {
         }
 
-        public User(String name) {
+        public Author(String name) {
             this.name = name;
         }
 
@@ -221,13 +222,13 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
         @Temporal(TemporalType.TIMESTAMP)
         private Date createdOn = new Date();
 
-        @ManyToOne
-        private User author;
+        @ManyToOne(fetch = FetchType.LAZY)
+        private Author author;
 
         public Post() {
         }
 
-        public Post(String name, User author) {
+        public Post(String name, Author author) {
             this.name = name;
             this.author = author;
         }
@@ -244,7 +245,7 @@ public class QueryCacheTest extends AbstractPostgreSQLIntegrationTest {
             this.name = name;
         }
 
-        public User getAuthor() {
+        public Author getAuthor() {
             return author;
         }
     }
