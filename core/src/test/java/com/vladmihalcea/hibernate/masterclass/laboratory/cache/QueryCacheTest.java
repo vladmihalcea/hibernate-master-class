@@ -63,7 +63,6 @@ public class QueryCacheTest extends AbstractTest {
         return (List<Post>) session.createQuery(
             "select p " +
             "from Post p " +
-            "join p.author a " +
             "order by p.createdOn desc")
             .setMaxResults(10)
             .setCacheable(true)
@@ -74,10 +73,10 @@ public class QueryCacheTest extends AbstractTest {
     private List<Post> getLatestPostsByAuthorId(Session session) {
         return (List<Post>) session.createQuery(
             "select p " +
-                    "from Post p " +
-                    "join p.author a " +
-                    "where a.id = :authorId " +
-                    "order by p.createdOn desc")
+            "from Post p " +
+            "join p.author a " +
+            "where a.id = :authorId " +
+            "order by p.createdOn desc")
             .setParameter("authorId", 1L)
             .setMaxResults(10)
             .setCacheable(true)
@@ -89,10 +88,10 @@ public class QueryCacheTest extends AbstractTest {
         Author author = (Author) session.get(Author.class, 1L);
         return (List<Post>) session.createQuery(
                 "select p " +
-                        "from Post p " +
-                        "join p.author a " +
-                        "where a = :author " +
-                        "order by p.createdOn desc")
+                "from Post p " +
+                "join p.author a " +
+                "where a = :author " +
+                "order by p.createdOn desc")
                 .setParameter("author", author)
                 .setMaxResults(10)
                 .setCacheable(true)
@@ -104,7 +103,7 @@ public class QueryCacheTest extends AbstractTest {
         doInTransaction(session -> {
             LOGGER.info("Evict regions and run query");
             session.getSessionFactory().getCache().evictAllRegions();
-            List<Post> posts = getLatestPosts(session);
+            assertEquals(1, getLatestPosts(session).size());
         });
 
         doInTransaction(session -> {
@@ -114,7 +113,7 @@ public class QueryCacheTest extends AbstractTest {
 
         doInTransaction(session -> {
             LOGGER.info("Check query is cached");
-            List<Post> posts = getLatestPosts(session);
+            assertEquals(1, getLatestPosts(session).size());
         });
     }
 
@@ -135,54 +134,53 @@ public class QueryCacheTest extends AbstractTest {
     @Test
     public void test2ndLevelCacheWithQueryInvalidation() {
         doInTransaction(session -> {
-            List<Post> posts = getLatestPosts(session);
-        });
+            Author author = (Author)
+                session.get(Author.class, 1L);
+            assertEquals(1, getLatestPosts(session).size());
 
-        doInTransaction(session -> {
-            LOGGER.info("Insert a new Post!");
-
-            Post newPost = new Post();
-            newPost.setName("Hibernate Book!");
+            LOGGER.info("Insert a new Post");
+            Post newPost = new Post("Hibernate Book", author);
             session.persist(newPost);
             session.flush();
 
-            LOGGER.info("Check query cache is invalidated");
-            List<Post> posts = getLatestPosts(session);
+            LOGGER.info("Query cache is invalidated");
+            assertEquals(2, getLatestPosts(session).size());
+        });
+
+        doInTransaction(session -> {
+            LOGGER.info("Check Query cache");
+            assertEquals(2, getLatestPosts(session).size());
         });
     }
 
     @Test
     public void test2ndLevelCacheWithNativeQueryInvalidation() {
         doInTransaction(session -> {
-            List<Post> posts = getLatestPosts(session);
-        });
+            assertEquals(1, getLatestPosts(session).size());
 
-        doInTransaction(session -> {
             LOGGER.info("Execute native query");
-
-            assertEquals(1, session.createSQLQuery("update Author set name = '\"'||name||'\"' ").executeUpdate());
+            assertEquals(1, session.createSQLQuery(
+                "update Author set name = '\"'||name||'\"' "
+            ).executeUpdate());
 
             LOGGER.info("Check query cache is invalidated");
-            List<Post> posts = getLatestPosts(session);
+            assertEquals(1, getLatestPosts(session).size());
         });
     }
 
     @Test
     public void test2ndLevelCacheWithNativeQuerySynchronization() {
         doInTransaction(session -> {
-            List<Post> posts = getLatestPosts(session);
-        });
+            assertEquals(1, getLatestPosts(session).size());
 
-        doInTransaction(session -> {
             LOGGER.info("Execute native query with synchronization");
-
-            assertEquals(1, session
-                    .createSQLQuery("update Author set name = '\"'||name||'\"' ")
-                    .addSynchronizedEntityClass(Author.class)
-                    .executeUpdate());
+            assertEquals(1, session.createSQLQuery(
+                    "update Author set name = '\"'||name||'\"' "
+            ).addSynchronizedEntityClass(Author.class)
+            .executeUpdate());
 
             LOGGER.info("Check query cache is not invalidated");
-            List<Post> posts = getLatestPosts(session);
+            assertEquals(1, getLatestPosts(session).size());
         });
     }
 
