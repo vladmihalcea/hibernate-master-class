@@ -3,7 +3,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.entityidentifier;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertSame;
+import static org.junit.Assert.assertSame;
 
 public class EntityIdentifierTest extends AbstractTest {
 
