@@ -6,6 +6,8 @@ import org.junit.Test;
 import javax.persistence.*;
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * ManyToManyWithElementCollectionTest - ManyToMany with ElementCollection Test
  *
@@ -23,10 +25,18 @@ public class ManyToManyWithElementCollectionTest extends AbstractTest {
 
     @Test
     public void testAddingEmbeddable() {
-        doInTransaction(session -> {
+        final Clubber clubberReference = doInTransaction(session -> {
             Clubber clubber = new Clubber();
             Club club = new Club();
             clubber.addClub(club);
+            session.persist(club);
+            return clubber;
+        });
+
+        doInTransaction(session -> {
+            Clubber clubber = (Clubber) session.get(Clubber.class, clubberReference.getId());
+            assertEquals(1, clubber.getClubs().size());
+            assertEquals(1, clubber.getJoinDate().size());
         });
     }
 
@@ -45,13 +55,6 @@ public class ManyToManyWithElementCollectionTest extends AbstractTest {
         @MapKeyJoinColumn(name = "Club_ID", referencedColumnName="Club_ID")
         private Map<Club, Date> joinDate = new HashMap<>();
 
-        @ManyToMany(cascade = CascadeType.PERSIST)
-        @JoinTable(name = "CLUB_ASSIGNMENTS",
-                joinColumns = @JoinColumn(name="Clubber_Id", referencedColumnName="Clubber_Id"),
-                inverseJoinColumns = @JoinColumn(name="Club_ID", referencedColumnName="Club_ID"))
-        private List<Club> clubs = new ArrayList<>();
-
-
         public Integer getId() {
             return id;
         }
@@ -60,13 +63,13 @@ public class ManyToManyWithElementCollectionTest extends AbstractTest {
             return joinDate;
         }
 
-        public List<Club> getClubs() {
-            return clubs;
+        public Collection<Club> getClubs() {
+            return joinDate.keySet();
         }
 
         public void addClub(Club club) {
             joinDate.put(club, new Date());
-            clubs.add(club);
+            //clubs.add(club);
             club.getClubbers().add(this);
         }
     }
@@ -79,7 +82,7 @@ public class ManyToManyWithElementCollectionTest extends AbstractTest {
         @Column(name = "Club_ID")
         private Integer id;
 
-        @ManyToMany(cascade = CascadeType.PERSIST, mappedBy = "clubs")
+        @ManyToMany(mappedBy = "joinDate", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
         private List<Clubber> clubbers = new ArrayList<>();
 
         public Integer getId() {
