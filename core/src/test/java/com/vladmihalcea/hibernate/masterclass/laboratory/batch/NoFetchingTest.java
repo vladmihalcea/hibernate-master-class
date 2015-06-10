@@ -18,8 +18,8 @@ import java.util.concurrent.TimeUnit;
  * @author Vlad Mihalcea
  */
 public class NoFetchingTest
-        //extends AbstractTest {
-        extends AbstractOracleXEIntegrationTest {
+        extends AbstractTest {
+        //extends AbstractOracleXEIntegrationTest {
         //extends AbstractPostgreSQLIntegrationTest {
 
     @Override
