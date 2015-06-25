@@ -15,7 +15,8 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
         return new Class<?>[] {
                 IdentityIdentifier.class,
                 SequenceIdentifier.class,
-                TableSequenceIdentifier.class
+                TableSequenceIdentifier.class,
+                AssignTableSequenceIdentifier.class
         };
     }
 
@@ -73,6 +74,20 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
         });
     }
 
+    @Test
+    public void testAssignTableSequenceIdentifierGenerator() {
+        LOGGER.debug("testAssignTableSequenceIdentifierGenerator");
+        doInTransaction(session -> {
+            for (int i = 0; i < 5; i++) {
+                session.persist(new AssignTableSequenceIdentifier());
+            }
+            AssignTableSequenceIdentifier tableSequenceIdentifier = new AssignTableSequenceIdentifier();
+            tableSequenceIdentifier.id = -1L;
+            session.merge(tableSequenceIdentifier);
+            session.flush();
+        });
+    }
+
     @Entity(name = "identityIdentifier")
     public static class IdentityIdentifier {
 
@@ -103,4 +118,22 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
         @GeneratedValue(generator = "table", strategy=GenerationType.TABLE)
         private Long id;
     }
+
+    @Entity(name = "assigneTableIdentifier")
+    public static class AssignTableSequenceIdentifier implements Identifiable<Long> {
+
+        @Id
+        @GenericGenerator(name = "table", strategy = "com.vladmihalcea.hibernate.masterclass.laboratory.idgenerator.AssignedTableGenerator",
+            parameters = {
+                @org.hibernate.annotations.Parameter(name = "table_name", value = "sequence_table")
+        })
+        @GeneratedValue(generator = "table", strategy=GenerationType.TABLE)
+        private Long id;
+
+        @Override
+        public Long getId() {
+            return id;
+        }
+    }
+
 }

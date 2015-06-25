@@ -1,7 +1,6 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.idgenerator;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.Session;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 import org.junit.Test;
@@ -22,15 +21,10 @@ public class HiloIdentifierTest extends AbstractTest {
 
     @Test
     public void testHiloIdentifierGenerator() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                for(int i = 0; i < 8; i++) {
-                    HiloIdentifierTest.Hilo hilo = new Hilo();
-                    session.persist(hilo);
-                    session.flush();
-                }
-                return null;
+        doInTransaction(session -> {
+            for(int i = 0; i < 8; i++) {
+                Hilo hilo = new Hilo();
+                session.persist(hilo);
             }
         });
     }
@@ -57,4 +51,6 @@ public class HiloIdentifierTest extends AbstractTest {
         private Long id;
 
     }
+
+
 }
