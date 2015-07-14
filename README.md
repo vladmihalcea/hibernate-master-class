@@ -26,3 +26,9 @@ The Integration Tests require some external configurations:
  You need to install the ojdbc6.jar on your local Maven repository using the following command:
  
  $ mvn install:install-file -Dfile=ojdbc6.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
+ 
+* MySQL
+  
+ You should install [MySQL](http://dev.mysql.com/downloads/) 5.6 (or later) and the password for the *mysql* user should be *admin*
+ 
+ Now you need to create a *hibernate-master-class* schema

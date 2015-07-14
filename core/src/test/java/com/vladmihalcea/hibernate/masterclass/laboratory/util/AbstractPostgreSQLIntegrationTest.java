@@ -13,7 +13,7 @@ public abstract class AbstractPostgreSQLIntegrationTest extends AbstractTest {
 
     @Override
     protected String hibernateDialect() {
-        return "org.hibernate.dialect.PostgreSQLDialect";
+        return "org.hibernate.dialect.PostgreSQL9Dialect";
     }
 
     @Override
