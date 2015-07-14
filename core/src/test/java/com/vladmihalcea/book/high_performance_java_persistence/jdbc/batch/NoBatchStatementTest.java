@@ -19,17 +19,18 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public class BatchStatementTest extends AbstractBatchStatementTest {
+public class NoBatchStatementTest extends AbstractBatchStatementTest {
+
+    private int count;
 
     @Override
     protected void onStatement(Statement statement, String dml) throws SQLException {
-       statement.addBatch(dml);
+        statement.executeUpdate(dml);
+        count++;
     }
 
     @Override
     protected void onEnd(Statement statement) throws SQLException {
-        int[] updateCount = statement.executeBatch();
-        statement.clearBatch();
-        assertEquals((getPostCommentCount() + 1) * getPostCount(), updateCount.length);
+        assertEquals((getPostCommentCount() + 1) * getPostCount(), count);
     }
 }
