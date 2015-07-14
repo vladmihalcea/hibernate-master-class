@@ -69,7 +69,7 @@ public class NoFetchingTest
     }
 
     protected int itemsCount() {
-        return 5000;
+        return 10;
     }
 
     protected int batchSize() {
@@ -77,7 +77,7 @@ public class NoFetchingTest
     }
 
     protected int fetchSize() {
-        return 1000;
+        return 10;
     }
 
     @Entity(name = "Post")

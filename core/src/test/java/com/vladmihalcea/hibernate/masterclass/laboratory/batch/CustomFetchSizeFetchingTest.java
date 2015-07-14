@@ -17,6 +17,6 @@ public class CustomFetchSizeFetchingTest extends NoFetchingTest {
     }
 
     protected int fetchSize() {
-        return 10000;
+        return 10;
     }
 }

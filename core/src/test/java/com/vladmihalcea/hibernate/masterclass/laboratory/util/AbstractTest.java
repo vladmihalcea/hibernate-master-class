@@ -8,6 +8,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.jdbc.Work;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.After;
 import org.junit.Before;
@@ -15,11 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractTest {
 
@@ -42,7 +46,7 @@ public abstract class AbstractTest {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     @FunctionalInterface
-    protected static interface VoidCallable extends Callable<Void> {
+    protected interface VoidCallable extends Callable<Void> {
 
         void execute();
 
@@ -53,17 +57,27 @@ public abstract class AbstractTest {
     }
 
     @FunctionalInterface
-    protected static interface SessionCallable<T> {
+    protected interface SessionCallable<T> {
         T execute(Session session);
     }
 
     @FunctionalInterface
-    protected static interface SessionVoidCallable {
+    protected interface SessionVoidCallable {
         void execute(Session session);
     }
 
     @FunctionalInterface
-    protected static interface TransactionCallable<T> extends SessionCallable<T> {
+    protected interface ConnectionCallable<T> {
+        T execute(Connection connection);
+    }
+
+    @FunctionalInterface
+    protected interface ConnectionVoidCallable {
+        void execute(Connection connection);
+    }
+
+    @FunctionalInterface
+    protected interface TransactionCallable<T> extends SessionCallable<T> {
         default void beforeTransactionCompletion() {
 
         }
@@ -74,7 +88,7 @@ public abstract class AbstractTest {
     }
 
     @FunctionalInterface
-    protected static interface TransactionVoidCallable extends SessionVoidCallable {
+    protected interface TransactionVoidCallable extends SessionVoidCallable {
         default void beforeTransactionCompletion() {
 
         }
@@ -83,7 +97,6 @@ public abstract class AbstractTest {
 
         }
     }
-
 
     private SessionFactory sf;
 
@@ -157,10 +170,22 @@ public abstract class AbstractTest {
 
     protected DataSource dataSource() {
         JDBCDataSource dataSource = new JDBCDataSource();
-        dataSource.setUrl("jdbc:hsqldb:mem:test;hsqldb.tx=" + lockType().name().toLowerCase());
-        dataSource.setUser("sa");
-        dataSource.setPassword("");
+        dataSource.setUrl(jdbcConnectionUrl());
+        dataSource.setUser(jdbcConnectionUser());
+        dataSource.setPassword(jdbcConnectionPassword());
         return dataSource;
+    }
+
+    protected String jdbcConnectionUrl() {
+        return "jdbc:hsqldb:mem:test;hsqldb.tx=" + lockType().name().toLowerCase();
+    }
+
+    protected String jdbcConnectionUser() {
+        return "sa";
+    }
+
+    protected String jdbcConnectionPassword() {
+        return "";
     }
 
     protected <T> T doInTransaction(TransactionCallable<T> callable) {
@@ -201,6 +226,46 @@ public abstract class AbstractTest {
             throw e;
         } finally {
             callable.afterTransactionCompletion();
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
+    protected <T> T doInConnection(ConnectionCallable<T> callable) {
+        AtomicReference<T> result = new AtomicReference<>();
+        Session session = null;
+        Transaction txn = null;
+        try {
+            session = sf.openSession();
+            txn = session.beginTransaction();
+            session.doWork(connection -> {
+                result.set(callable.execute(connection));
+            });
+            txn.commit();
+        } catch (RuntimeException e) {
+            if ( txn != null && txn.isActive() ) txn.rollback();
+            throw e;
+        } finally {
+            if (session != null) {
+                session.close();
+            }
+        }
+        return result.get();
+    }
+
+    protected void doInConnection(ConnectionVoidCallable callable) {
+        Session session = null;
+        Transaction txn = null;
+        try {
+            session = sf.openSession();
+            txn = session.beginTransaction();
+            session.doWork(callable::execute);
+            txn.commit();
+        } catch (RuntimeException e) {
+            if ( txn != null && txn.isActive() ) txn.rollback();
+            throw e;
+        } finally {
             if (session != null) {
                 session.close();
             }
