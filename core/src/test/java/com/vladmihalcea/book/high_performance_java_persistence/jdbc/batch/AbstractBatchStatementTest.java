@@ -1,9 +1,6 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractMySQLIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractSQLServerIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.RdbmsDataSourceProviderIntegrationTest;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -21,11 +18,15 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public abstract class AbstractBatchStatementTest extends AbstractSQLServerIntegrationTest {
+public abstract class AbstractBatchStatementTest extends RdbmsDataSourceProviderIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
 
     public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
+
+    public AbstractBatchStatementTest(RdbmsDataSourceProvider dataSourceProvider) {
+        super(dataSourceProvider);
+    }
 
     @Override
     protected Class<?>[] entities() {
@@ -56,8 +57,9 @@ public abstract class AbstractBatchStatementTest extends AbstractSQLServerIntegr
                 fail(e.getMessage());
             }
         });
-        LOGGER.info("{}.testInsert took {} millis",
+        LOGGER.info("{}.testInsert for {} took {} millis",
                 getClass().getSimpleName(),
+                getRdbmsDataSourceProvider().name(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
