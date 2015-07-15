@@ -3,6 +3,7 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractMySQLIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractSQLServerIntegrationTest;
 import org.junit.Test;
 
 import javax.persistence.*;
@@ -20,7 +21,7 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public abstract class AbstractBatchStatementTest extends AbstractMySQLIntegrationTest {
+public abstract class AbstractBatchStatementTest extends AbstractSQLServerIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
 

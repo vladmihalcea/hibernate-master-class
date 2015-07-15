@@ -32,3 +32,18 @@ The Integration Tests require some external configurations:
  You should install [MySQL](http://dev.mysql.com/downloads/) 5.6 (or later) and the password for the *mysql* user should be *admin*
  
  Now you need to create a *hibernate-master-class* schema
+
+* MSSQL
+
+ You should install [SQL Server Express Edition with Tools](http://www.microsoft.com/en-us/server-cloud/products/sql-server-editions/sql-server-express.aspx)
+ Chose mixed mode authentication and set the *sa* user password to *adm1n*
+
+ Open SQL Server Management Studio and create the *hibernate_master_class* database
+ 
+ Open SQL Server Configuration Manager -> SQL Server Network Configuration and [enable Named Pipes and TCP](http://stackoverflow.com/questions/18841744/jdbc-connection-failed-error-tcp-ip-connection-to-host-failed)
+
+ Download JDBC Driver: https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774
+ 
+ You need to install the sqljdbc4.jar on your local Maven repository using the following command:
+ 
+ mvn install:install-file -Dfile=sqljdbc4.jar -Dpackaging=jar -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.0

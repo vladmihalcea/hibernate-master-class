@@ -108,6 +108,13 @@
         </dependency>
 
         <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>sqljdbc4</artifactId>
+            <version>${mssql.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
@@ -128,6 +135,7 @@
         <postgresql.version>9.1-901-1.jdbc4</postgresql.version>
         <oracle.version>11.2.0.4</oracle.version>
         <mysql.version>5.1.36</mysql.version>
+        <mssql.version>4.0</mssql.version>
         <junit.version>4.11</junit.version>
     </properties>
 
