@@ -8,7 +8,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 public abstract class AbstractPostgreSQLIntegrationTest extends AbstractTest {
 
     @Override
-    protected RdbmsDataSourceProvider getRdbmsDataSourceProvider() {
-        return RdbmsDataSourceProvider.POSTGRESQL;
+    protected DataSourceProvider getDataSourceProvider() {
+        return new PostgreSQLDataSourceProvider();
     }
 }

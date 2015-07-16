@@ -8,7 +8,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 public abstract class AbstractMySQLIntegrationTest extends AbstractTest {
 
     @Override
-    protected RdbmsDataSourceProvider getRdbmsDataSourceProvider() {
-        return RdbmsDataSourceProvider.MYSQL;
+    protected DataSourceProvider getDataSourceProvider() {
+        return new MySQLDataSourceProvider();
     }
 }

@@ -1,8 +1,5 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -13,10 +10,9 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Vlad Mihalcea
  */
-@RunWith(Parameterized.class)
 public class BatchStatementTest extends AbstractBatchStatementTest {
 
-    public BatchStatementTest(RdbmsDataSourceProvider dataSourceProvider) {
+    public BatchStatementTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
@@ -30,5 +26,10 @@ public class BatchStatementTest extends AbstractBatchStatementTest {
         int[] updateCount = statement.executeBatch();
         statement.clearBatch();
         assertEquals((getPostCommentCount() + 1) * getPostCount(), updateCount.length);
+    }
+
+    @Override
+    protected void onFlush(Statement statement) throws SQLException {
+        statement.executeBatch();
     }
 }

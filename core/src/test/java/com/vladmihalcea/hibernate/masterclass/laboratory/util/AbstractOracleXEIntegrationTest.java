@@ -8,7 +8,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 public abstract class AbstractOracleXEIntegrationTest extends AbstractTest {
 
     @Override
-    protected RdbmsDataSourceProvider getRdbmsDataSourceProvider() {
-        return RdbmsDataSourceProvider.ORACLE;
+    protected DataSourceProvider getDataSourceProvider() {
+        return new OracleDataSourceProvider();
     }
 }

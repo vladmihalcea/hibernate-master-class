@@ -11,7 +11,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.jdbc.Work;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.After;
 import org.junit.Before;
@@ -47,86 +46,88 @@ public abstract class AbstractTest {
         MVCC
     }
 
-    protected enum RdbmsDataSourceProvider implements DataSourceProvider {
-        HSQLDB {
-            @Override
-            public String hibernateDialect() {
-                return "org.hibernate.dialect.HSQLDialect";
-            }
+    public static class HsqldbDataSourceProvider implements DataSourceProvider {
 
-            @Override
-            public DataSource dataSource() {
-                JDBCDataSource dataSource = new JDBCDataSource();
-                dataSource.setUrl("jdbc:hsqldb:mem:test");
-                dataSource.setUser("sa");
-                dataSource.setPassword("");
-                return dataSource;
-            }
-        },
-        POSTGRESQL {
-            @Override
-            public String hibernateDialect() {
-                return "org.hibernate.dialect.PostgreSQL9Dialect";
-            }
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.HSQLDialect";
+        }
 
-            @Override
-            public DataSource dataSource() {
-                PGSimpleDataSource dataSource = new PGSimpleDataSource();
+        @Override
+        public DataSource dataSource() {
+            JDBCDataSource dataSource = new JDBCDataSource();
+            dataSource.setUrl("jdbc:hsqldb:mem:test");
+            dataSource.setUser("sa");
+            dataSource.setPassword("");
+            return dataSource;
+        }
+    }
+
+    public static class PostgreSQLDataSourceProvider implements DataSourceProvider {
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.PostgreSQL9Dialect";
+        }
+
+        @Override
+        public DataSource dataSource() {
+            PGSimpleDataSource dataSource = new PGSimpleDataSource();
+            dataSource.setDatabaseName("hibernate-master-class");
+            dataSource.setServerName("localhost");
+            dataSource.setUser("postgres");
+            dataSource.setPassword("admin");
+            return dataSource;
+        }
+    }
+
+    public static class OracleDataSourceProvider implements DataSourceProvider {
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.Oracle10gDialect";
+        }
+
+        @Override
+        public DataSource dataSource() {
+            try {
+                OracleDataSource dataSource = new OracleDataSource();
                 dataSource.setDatabaseName("hibernate-master-class");
-                dataSource.setServerName("localhost");
-                dataSource.setUser("postgres");
+                dataSource.setURL("jdbc:oracle:thin:@localhost:1521/xe");
+                dataSource.setUser("sys as sysdba");
                 dataSource.setPassword("admin");
                 return dataSource;
-            }
-        },
-        ORACLE {
-            @Override
-            public String hibernateDialect() {
-                return "org.hibernate.dialect.Oracle10gDialect";
-            }
-
-            @Override
-            public DataSource dataSource() {
-                try {
-                    OracleDataSource dataSource = new OracleDataSource();
-                    dataSource.setDatabaseName("hibernate-master-class");
-                    dataSource.setURL("jdbc:oracle:thin:@localhost:1521/xe");
-                    dataSource.setUser("sys as sysdba");
-                    dataSource.setPassword("admin");
-                    return dataSource;
-                } catch (SQLException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        },
-        MYSQL{
-            @Override
-            public String hibernateDialect() {
-                return "org.hibernate.dialect.MySQL5Dialect";
-            }
-
-            @Override
-            public DataSource dataSource() {
-                MysqlDataSource dataSource = new MysqlDataSource();
-                dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=true");
-                return dataSource;
-            }
-        },
-        SQLSERVER {
-            @Override
-            public String hibernateDialect() {
-                return "org.hibernate.dialect.SQLServer2012Dialect";
-            }
-
-            @Override
-            public DataSource dataSource() {
-                SQLServerDataSource dataSource = new SQLServerDataSource();
-                dataSource.setURL("jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
-                return dataSource;
+            } catch (SQLException e) {
+                throw new IllegalStateException(e);
             }
         }
     }
 
+    public static class MySQLDataSourceProvider implements DataSourceProvider {
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.MySQL5Dialect";
+        }
+
+        @Override
+        public DataSource dataSource() {
+            MysqlDataSource dataSource = new MysqlDataSource();
+            dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=true");
+            return dataSource;
+        }
+    }
+
+    public static class SQLServerDataSourceProvider implements DataSourceProvider {
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.SQLServer2012Dialect";
+        }
+
+        @Override
+        public DataSource dataSource() {
+            SQLServerDataSource dataSource = new SQLServerDataSource();
+            dataSource.setURL("jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
+            return dataSource;
+        }
+    }
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
         Thread bob = new Thread(r);
@@ -240,7 +241,7 @@ public abstract class AbstractTest {
 
     protected Properties getProperties() {
         Properties properties = new Properties();
-        properties.put("hibernate.dialect", getRdbmsDataSourceProvider().hibernateDialect());
+        properties.put("hibernate.dialect", getDataSourceProvider().hibernateDialect());
         //log settings
         properties.put("hibernate.hbm2ddl.auto", "create-drop");
         //data source settings
@@ -250,13 +251,13 @@ public abstract class AbstractTest {
 
     private ProxyDataSource newDataSource() {
         ProxyDataSource proxyDataSource = new ProxyDataSource();
-        proxyDataSource.setDataSource(getRdbmsDataSourceProvider().dataSource());
+        proxyDataSource.setDataSource(getDataSourceProvider().dataSource());
         proxyDataSource.setListener(new SLF4JQueryLoggingListener());
         return proxyDataSource;
     }
 
-    protected RdbmsDataSourceProvider getRdbmsDataSourceProvider() {
-        return RdbmsDataSourceProvider.HSQLDB;
+    protected DataSourceProvider getDataSourceProvider() {
+        return new HsqldbDataSourceProvider();
     }
 
     protected <T> T doInTransaction(TransactionCallable<T> callable) {

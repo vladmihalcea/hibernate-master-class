@@ -1,31 +1,51 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
 
 import javax.persistence.*;
+import javax.sql.DataSource;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.fail;
 
 /**
- * AbstractBatchStatementTest - Base class for testing JDBC Statement batching
+ * BatchStatementTest - Test batching with Statements
  *
  * @author Vlad Mihalcea
  */
-public abstract class AbstractBatchStatementTest extends DataSourceProviderIntegrationTest {
+public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
+    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
+    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
 
-    public AbstractBatchStatementTest(DataSourceProvider dataSourceProvider) {
-        super(dataSourceProvider);
+    @Override
+    protected DataSourceProvider getDataSourceProvider() {
+        return new OracleDataSourceProvider() {
+            @Override
+            public DataSource dataSource() {
+                OracleDataSource dataSource = (OracleDataSource) super.dataSource();
+                try {
+                    Properties connectionProperties = dataSource.getConnectionProperties();
+                    if(connectionProperties == null) {
+                        connectionProperties = new Properties();
+                    }
+                    //connectionProperties.setProperty("defaultExecuteBatch", "30");
+                    dataSource.setConnectionProperties(connectionProperties);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
+                return dataSource;
+            }
+        };
     }
 
     @Override
@@ -42,20 +62,30 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
         LOGGER.info("Test batch insert");
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (Statement statement = connection.createStatement()) {
+            try (
+                PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
+                PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT);
+            ) {
                 int postCount = getPostCount();
                 int postCommentCount = getPostCommentCount();
 
+                int index;
+
                 for(int i = 0; i < postCount; i++) {
-                    onStatement(statement, String.format(INSERT_POST, i));
+                    index = 0;
+                    postStatement.setString(++index, String.format("Post no. %1$d", i));
+                    postStatement.setInt(++index, 0);
+                    postStatement.setLong(++index, i);
+                    int rows = postStatement.executeUpdate();
                     for(int j = 0; j < postCommentCount; j++) {
-                        onStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j));
-                        if((i + 1) * j % getBatchSize() == 0) {
-                            onFlush(statement);
-                        }
+                        index = 0;
+                        postCommentStatement.setLong(++index, i);
+                        postCommentStatement.setString(++index, String.format("Post comment %1$d", i));
+                        postCommentStatement.setInt(++index, 0);
+                        postCommentStatement.setLong(++index, (postCommentCount * i) + j);
+                        postCommentStatement.executeUpdate();
                     }
                 }
-                onEnd(statement);
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -66,12 +96,6 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
-    protected abstract void onFlush(Statement statement) throws SQLException;
-
-    protected abstract void onStatement(Statement statement, String dml) throws SQLException;
-
-    protected abstract void onEnd(Statement statement) throws SQLException;
-
     protected int getPostCount() {
         return 1000;
     }
@@ -81,7 +105,7 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
     }
 
     protected int getBatchSize() {
-        return 50;
+        return 1;
     }
 
     @Entity(name = "Post")

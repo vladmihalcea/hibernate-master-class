@@ -8,7 +8,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 public abstract class AbstractSQLServerIntegrationTest extends AbstractTest {
 
     @Override
-    protected RdbmsDataSourceProvider getRdbmsDataSourceProvider() {
-        return RdbmsDataSourceProvider.SQLSERVER;
+    protected DataSourceProvider getDataSourceProvider() {
+        return new SQLServerDataSourceProvider();
     }
 }

@@ -1,31 +1,51 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
 
 import javax.persistence.*;
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.fail;
 
 /**
- * AbstractBatchStatementTest - Base class for testing JDBC Statement batching
+ * BatchStatementTest - Test batching with Statements
  *
  * @author Vlad Mihalcea
  */
-public abstract class AbstractBatchStatementTest extends DataSourceProviderIntegrationTest {
+public class OracleBatchStatementTest extends AbstractOracleXEIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
 
     public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
 
-    public AbstractBatchStatementTest(DataSourceProvider dataSourceProvider) {
-        super(dataSourceProvider);
+    @Override
+    protected DataSourceProvider getDataSourceProvider() {
+        return new OracleDataSourceProvider() {
+            @Override
+            public DataSource dataSource() {
+                OracleDataSource dataSource = (OracleDataSource) super.dataSource();
+                try {
+                    Properties connectionProperties = dataSource.getConnectionProperties();
+                    if(connectionProperties == null) {
+                        connectionProperties = new Properties();
+                    }
+                    connectionProperties.put("defaultExecuteBatch", 30);
+                    dataSource.setConnectionProperties(connectionProperties);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
+                return dataSource;
+            }
+        };
     }
 
     @Override
@@ -47,15 +67,11 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
                 int postCommentCount = getPostCommentCount();
 
                 for(int i = 0; i < postCount; i++) {
-                    onStatement(statement, String.format(INSERT_POST, i));
+                    statement.executeUpdate(String.format(INSERT_POST, i));
                     for(int j = 0; j < postCommentCount; j++) {
-                        onStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j));
-                        if((i + 1) * j % getBatchSize() == 0) {
-                            onFlush(statement);
-                        }
+                        statement.executeUpdate(String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j));
                     }
                 }
-                onEnd(statement);
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -65,12 +81,6 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
                 getDataSourceProvider().getClass().getSimpleName(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
-
-    protected abstract void onFlush(Statement statement) throws SQLException;
-
-    protected abstract void onStatement(Statement statement, String dml) throws SQLException;
-
-    protected abstract void onEnd(Statement statement) throws SQLException;
 
     protected int getPostCount() {
         return 1000;

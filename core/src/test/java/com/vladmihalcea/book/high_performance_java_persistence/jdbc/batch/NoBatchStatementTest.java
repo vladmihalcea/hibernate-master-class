@@ -14,7 +14,7 @@ public class NoBatchStatementTest extends AbstractBatchStatementTest {
 
     private int count;
 
-    public NoBatchStatementTest(RdbmsDataSourceProvider dataSourceProvider) {
+    public NoBatchStatementTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
@@ -27,5 +27,10 @@ public class NoBatchStatementTest extends AbstractBatchStatementTest {
     @Override
     protected void onEnd(Statement statement) throws SQLException {
         assertEquals((getPostCommentCount() + 1) * getPostCount(), count);
+    }
+
+    @Override
+    protected void onFlush(Statement statement) {
+
     }
 }
