@@ -3,15 +3,14 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.persistence.*;
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.fail;
@@ -21,11 +20,26 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
+@RunWith(Parameterized.class)
+public class OracleDefaultExecuteBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
     public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+
+    private final int defaultExecuteBatch;
+
+    public OracleDefaultExecuteBatchPreparedStatementTest(int defaultExecuteBatch) {
+        this.defaultExecuteBatch = defaultExecuteBatch;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Integer[]> defaultExecuteBatches() {
+        List<Integer[]> providers = new ArrayList<>();
+        providers.add(new Integer[] {1});
+        providers.add(new Integer[] {50});
+        return providers;
+    }
 
     @Override
     protected DataSourceProvider getDataSourceProvider() {
@@ -38,7 +52,7 @@ public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegratio
                     if(connectionProperties == null) {
                         connectionProperties = new Properties();
                     }
-                    //connectionProperties.setProperty("defaultExecuteBatch", "30");
+                    connectionProperties.setProperty("defaultExecuteBatch", String.valueOf(defaultExecuteBatch));
                     dataSource.setConnectionProperties(connectionProperties);
                 } catch (SQLException e) {
                     fail(e.getMessage());
@@ -59,7 +73,7 @@ public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegratio
 
     @Test
     public void testInsert() {
-        LOGGER.info("Test batch insert");
+        LOGGER.info("Test batch insert for defaultExecuteBatch {}", defaultExecuteBatch);
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
             try (
@@ -76,7 +90,10 @@ public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegratio
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
-                    int rows = postStatement.executeUpdate();
+                    postStatement.executeUpdate();
+                }
+
+                for(int i = 0; i < postCount; i++) {
                     for(int j = 0; j < postCommentCount; j++) {
                         index = 0;
                         postCommentStatement.setLong(++index, i);
@@ -90,9 +107,9 @@ public class OracleBatchPreparedStatementTest extends AbstractOracleXEIntegratio
                 fail(e.getMessage());
             }
         });
-        LOGGER.info("{}.testInsert for {} took {} millis",
+        LOGGER.info("{}.testInsert for defaultExecuteBatch {}, took {} millis",
                 getClass().getSimpleName(),
-                getDataSourceProvider().getClass().getSimpleName(),
+                defaultExecuteBatch,
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
