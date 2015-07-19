@@ -6,7 +6,7 @@ import java.sql.Statement;
 import static org.junit.Assert.assertEquals;
 
 /**
- * BatchStatementTest - Test batching with Statements
+ * BatchStatementTest - Test without batching Statements
  *
  * @author Vlad Mihalcea
  */
