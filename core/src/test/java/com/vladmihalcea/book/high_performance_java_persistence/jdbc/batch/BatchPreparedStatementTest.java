@@ -32,4 +32,9 @@ public class BatchPreparedStatementTest extends AbstractBatchPreparedStatementTe
     protected void onFlush(PreparedStatement statement) throws SQLException {
         statement.executeBatch();
     }
+
+    @Override
+    protected int getBatchSize() {
+        return 100;
+    }
 }
