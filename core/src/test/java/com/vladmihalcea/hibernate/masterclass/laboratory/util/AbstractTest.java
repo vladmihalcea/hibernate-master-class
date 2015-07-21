@@ -111,6 +111,7 @@ public abstract class AbstractTest {
         public DataSource dataSource() {
             MysqlDataSource dataSource = new MysqlDataSource();
             dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=true");
+            //dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin");
             return dataSource;
         }
     }

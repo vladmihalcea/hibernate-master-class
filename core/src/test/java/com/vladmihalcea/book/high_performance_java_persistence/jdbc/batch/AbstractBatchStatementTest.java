@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
 
@@ -38,6 +39,7 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
     @Test
     public void testInsert() {
         LOGGER.info("Test batch insert");
+        AtomicInteger statementCount = new AtomicInteger();
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
             try (Statement statement = connection.createStatement()) {
@@ -45,12 +47,10 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
                 int postCommentCount = getPostCommentCount();
 
                 for(int i = 0; i < postCount; i++) {
-                    onStatement(statement, String.format(INSERT_POST, i));
-                    for(int j = 0; j < postCommentCount; j++) {
-                        onStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j));
-                        int insertCount = (i * (1 + postCommentCount)) + (2 + j);
-                        if(insertCount % getBatchSize() == 0) {
-                            onFlush(statement);
+                    executeStatement(statement, String.format(INSERT_POST, i), statementCount);
+                    if (insertComments()) {
+                        for(int j = 0; j < postCommentCount; j++) {
+                            executeStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j), statementCount);
                         }
                     }
                 }
@@ -67,12 +67,20 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
 
     protected abstract void onFlush(Statement statement) throws SQLException;
 
+    private void executeStatement(Statement statement, String dml, AtomicInteger statementCount) throws SQLException {
+        onStatement(statement, dml);
+        int count = statementCount.incrementAndGet();
+        if(count % getBatchSize() == 0) {
+            onFlush(statement);
+        }
+    }
+
     protected abstract void onStatement(Statement statement, String dml) throws SQLException;
 
     protected abstract void onEnd(Statement statement) throws SQLException;
 
     protected int getPostCount() {
-        return 1000;
+        return 5000;
     }
 
     protected int getPostCommentCount() {
@@ -80,6 +88,10 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
     }
 
     protected int getBatchSize() {
-        return 1;
+        return 50;
+    }
+
+    protected boolean insertComments() {
+        return false;
     }
 }
