@@ -102,6 +102,17 @@ public abstract class AbstractTest {
     }
 
     public static class MySQLDataSourceProvider implements DataSourceProvider {
+
+        private boolean rewriteBatchedStatements = true;
+
+        public boolean isRewriteBatchedStatements() {
+            return rewriteBatchedStatements;
+        }
+
+        public void setRewriteBatchedStatements(boolean rewriteBatchedStatements) {
+            this.rewriteBatchedStatements = rewriteBatchedStatements;
+        }
+
         @Override
         public String hibernateDialect() {
             return "org.hibernate.dialect.MySQL5Dialect";
@@ -110,8 +121,7 @@ public abstract class AbstractTest {
         @Override
         public DataSource dataSource() {
             MysqlDataSource dataSource = new MysqlDataSource();
-            dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=true");
-            //dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin");
+            dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=" + rewriteBatchedStatements);
             return dataSource;
         }
     }

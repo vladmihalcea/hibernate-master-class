@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
 
@@ -41,6 +42,8 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
         LOGGER.info("Test batch insert");
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
+            AtomicInteger postStatementCount = new AtomicInteger();
+            AtomicInteger postCommentStatementCount = new AtomicInteger();
             try (PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
                  PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT)) {
                 int postCount = getPostCount();
@@ -51,7 +54,7 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
-                    onStatement(postStatement);
+                    executeStatement(postStatement, postStatementCount);
                     for(int j = 0; j < postCommentCount; j++) {
                         index = 0;
 
@@ -59,12 +62,7 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
                         postCommentStatement.setString(++index, String.format("Post comment %1$d", j));
                         postCommentStatement.setInt(++index, 0);
                         postCommentStatement.setLong(++index, (postCommentCount * i) + j);
-                        onStatement(postCommentStatement);
-                        int insertCount = (i * (1 + postCommentCount)) + (2 + j);
-                        if(insertCount % getBatchSize() == 0) {
-                            onFlush(postStatement);
-                            onFlush(postCommentStatement);
-                        }
+                        executeStatement(postCommentStatement, postCommentStatementCount);
                     }
                 }
                 onEnd(postStatement);
@@ -81,6 +79,14 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
 
     protected abstract void onFlush(PreparedStatement statement) throws SQLException;
 
+    private void executeStatement(PreparedStatement statement, AtomicInteger statementCount) throws SQLException {
+        onStatement(statement);
+        int count = statementCount.incrementAndGet();
+        if(count % getBatchSize() == 0) {
+            onFlush(statement);
+        }
+    }
+
     protected abstract void onStatement(PreparedStatement statement) throws SQLException;
 
     protected abstract void onEnd(PreparedStatement statement) throws SQLException;
@@ -90,7 +96,7 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
     }
 
     protected int getPostCommentCount() {
-        return 5;
+        return 4;
     }
 
     protected int getBatchSize() {
