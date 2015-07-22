@@ -46,15 +46,27 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
                 int postCount = getPostCount();
                 int postCommentCount = getPostCommentCount();
 
-                for(int i = 0; i < postCount; i++) {
-                    executeStatement(statement, String.format(INSERT_POST, i), statementCount);
-                    if (insertComments()) {
+                if (mix()) {
+                    for(int i = 0; i < postCount; i++) {
+                        executeStatement(statement, String.format(INSERT_POST, i), statementCount);
                         for(int j = 0; j < postCommentCount; j++) {
                             executeStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j), statementCount);
                         }
                     }
+                    onEnd(statement);
+                } else {
+                    for(int i = 0; i < postCount; i++) {
+                        executeStatement(statement, String.format(INSERT_POST, i), statementCount);
+                    }
+                    onEnd(statement);
+
+                    for(int i = 0; i < postCount; i++) {
+                        for (int j = 0; j < postCommentCount; j++) {
+                            executeStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j), statementCount);
+                        }
+                    }
+                    onEnd(statement);
                 }
-                onEnd(statement);
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -80,18 +92,18 @@ public abstract class AbstractBatchStatementTest extends DataSourceProviderInteg
     protected abstract void onEnd(Statement statement) throws SQLException;
 
     protected int getPostCount() {
-        return 5000;
+        return 1000;
     }
 
     protected int getPostCommentCount() {
-        return 5;
+        return 4;
     }
 
     protected int getBatchSize() {
         return 50;
     }
 
-    protected boolean insertComments() {
+    protected boolean mix() {
         return false;
     }
 }

@@ -69,14 +69,15 @@ public class MySqlBatchStatementTest extends AbstractMySQLIntegrationTest {
 
                 for (int i = 0; i < postCount; i++) {
                     executeStatement(statement, String.format(INSERT_POST, i), statementCount);
-                    if (insertComments()) {
-                        for (int j = 0; j < postCommentCount; j++) {
-                            executeStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j), statementCount);
-                        }
+                }
+                statement.executeBatch();
+
+                for (int i = 0; i < postCount; i++) {
+                    for (int j = 0; j < postCommentCount; j++) {
+                        executeStatement(statement, String.format(INSERT_POST_COMMENT, i, (postCommentCount * i) + j), statementCount);
                     }
                 }
-                int[] updateCount = statement.executeBatch();
-                statement.clearBatch();
+                statement.executeBatch();
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -96,7 +97,7 @@ public class MySqlBatchStatementTest extends AbstractMySQLIntegrationTest {
     }
 
     protected int getPostCount() {
-        return 5000;
+        return 1000;
     }
 
     protected int getPostCommentCount() {
@@ -104,10 +105,6 @@ public class MySqlBatchStatementTest extends AbstractMySQLIntegrationTest {
     }
 
     protected int getBatchSize() {
-        return 50;
-    }
-
-    protected boolean insertComments() {
-        return false;
+        return 100 * 10;
     }
 }

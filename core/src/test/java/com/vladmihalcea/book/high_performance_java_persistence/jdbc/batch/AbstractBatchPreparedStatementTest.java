@@ -49,13 +49,19 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
                 int postCount = getPostCount();
                 int postCommentCount = getPostCommentCount();
 
+                int index;
+
                 for(int i = 0; i < postCount; i++) {
-                    int index = 0;
+                    index = 0;
+
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
                     executeStatement(postStatement, postStatementCount);
-                    for(int j = 0; j < postCommentCount; j++) {
+                }
+                onEnd(postStatement);
+                for(int i = 0; i < postCount; i++) {
+                    for (int j = 0; j < postCommentCount; j++) {
                         index = 0;
 
                         postCommentStatement.setLong(++index, i);
@@ -65,7 +71,6 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
                         executeStatement(postCommentStatement, postCommentStatementCount);
                     }
                 }
-                onEnd(postStatement);
                 onEnd(postCommentStatement);
             } catch (SQLException e) {
                 fail(e.getMessage());
