@@ -105,12 +105,32 @@ public abstract class AbstractTest {
 
         private boolean rewriteBatchedStatements = true;
 
+        private boolean cachePrepStmts = true;
+
+        private boolean useServerPrepStmts = true;
+
         public boolean isRewriteBatchedStatements() {
             return rewriteBatchedStatements;
         }
 
         public void setRewriteBatchedStatements(boolean rewriteBatchedStatements) {
             this.rewriteBatchedStatements = rewriteBatchedStatements;
+        }
+
+        public boolean isCachePrepStmts() {
+            return cachePrepStmts;
+        }
+
+        public void setCachePrepStmts(boolean cachePrepStmts) {
+            this.cachePrepStmts = cachePrepStmts;
+        }
+
+        public boolean isUseServerPrepStmts() {
+            return useServerPrepStmts;
+        }
+
+        public void setUseServerPrepStmts(boolean useServerPrepStmts) {
+            this.useServerPrepStmts = useServerPrepStmts;
         }
 
         @Override
@@ -121,7 +141,11 @@ public abstract class AbstractTest {
         @Override
         public DataSource dataSource() {
             MysqlDataSource dataSource = new MysqlDataSource();
-            dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin&rewriteBatchedStatements=" + rewriteBatchedStatements);
+            dataSource.setURL("jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin" +
+                    "&rewriteBatchedStatements=" + rewriteBatchedStatements +
+                    "&cachePrepStmts=" + cachePrepStmts +
+                    "&useServerPrepStmts=" + useServerPrepStmts
+            );
             return dataSource;
         }
     }
