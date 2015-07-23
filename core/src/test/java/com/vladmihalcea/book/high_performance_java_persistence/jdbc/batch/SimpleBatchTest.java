@@ -3,6 +3,7 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.junit.Test;
 
+import java.sql.PreparedStatement;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
@@ -40,8 +41,34 @@ public class SimpleBatchTest extends AbstractPostgreSQLIntegrationTest {
 
                 int[] updateCounts = statement.executeBatch();
 
-                assertEquals(4, updateCounts.length);
+                assertEquals(3, updateCounts.length);
             }
+        });
+    }
+
+    @Test
+    public void testPreparedStatement() {
+        LOGGER.info("Test Statement batch insert");
+        doInConnection(connection -> {
+            PreparedStatement postStatement = connection.prepareStatement(
+                    "insert into Post (title, version, id) " +
+                    "values (?, ?, ?)");
+
+            postStatement.setString(1, String.format("Post no. %1$d", 1));
+            postStatement.setInt(2, 0);
+            postStatement.setLong(3, 1);
+            postStatement.addBatch();
+
+            postStatement.setString(1, String.format("Post no. %1$d", 2));
+            postStatement.setInt(2, 0);
+            postStatement.setLong(3, 2);
+            postStatement.addBatch();
+
+            int[] updateCounts = postStatement.executeBatch();
+
+            assertEquals(2, updateCounts.length);
+
+            postStatement.close();
         });
     }
 }
