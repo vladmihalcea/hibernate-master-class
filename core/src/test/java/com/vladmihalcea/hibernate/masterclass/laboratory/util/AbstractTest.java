@@ -160,12 +160,12 @@ public abstract class AbstractTest {
 
     @FunctionalInterface
     protected interface ConnectionCallable<T> {
-        T execute(Connection connection);
+        T execute(Connection connection) throws SQLException;
     }
 
     @FunctionalInterface
     protected interface ConnectionVoidCallable {
-        void execute(Connection connection);
+        void execute(Connection connection) throws SQLException;
     }
 
     @FunctionalInterface
