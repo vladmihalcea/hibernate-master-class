@@ -7,7 +7,6 @@ import org.junit.runners.Parameterized;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -24,20 +23,13 @@ import static org.junit.Assert.fail;
 @RunWith(Parameterized.class)
 public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
-
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
-
     private final BatchEntityProvider entityProvider = new BatchEntityProvider();
-
-    private boolean rewriteBatchedStatements;
 
     private boolean cachePrepStmts;
 
     private boolean useServerPrepStmts;
 
-    public MySqlBatchPreparedStatementTest(boolean rewriteBatchedStatements, boolean cachePrepStmts, boolean useServerPrepStmts) {
-        this.rewriteBatchedStatements = rewriteBatchedStatements;
+    public MySqlBatchPreparedStatementTest(boolean cachePrepStmts, boolean useServerPrepStmts) {
         this.cachePrepStmts = cachePrepStmts;
         this.useServerPrepStmts = useServerPrepStmts;
     }
@@ -45,15 +37,10 @@ public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTes
     @Parameterized.Parameters
     public static Collection<Boolean[]> rdbmsDataSourceProvider() {
         List<Boolean[]> providers = new ArrayList<>();
-        providers.add(new Boolean[]{Boolean.FALSE, Boolean.FALSE, Boolean.FALSE});
-        providers.add(new Boolean[]{Boolean.FALSE, Boolean.FALSE, Boolean.TRUE});
-        providers.add(new Boolean[]{Boolean.FALSE, Boolean.TRUE, Boolean.FALSE});
-        providers.add(new Boolean[]{Boolean.FALSE, Boolean.TRUE, Boolean.TRUE});
-        providers.add(new Boolean[]{Boolean.TRUE, Boolean.FALSE, Boolean.FALSE});
-        providers.add(new Boolean[]{Boolean.TRUE, Boolean.FALSE, Boolean.TRUE});
-        providers.add(new Boolean[]{Boolean.TRUE, Boolean.TRUE, Boolean.FALSE});
-        providers.add(new Boolean[]{Boolean.FALSE, Boolean.TRUE, Boolean.FALSE});
-        providers.add(new Boolean[]{Boolean.TRUE, Boolean.TRUE, Boolean.TRUE});
+        providers.add(new Boolean[]{Boolean.FALSE, Boolean.FALSE});
+        providers.add(new Boolean[]{Boolean.FALSE, Boolean.TRUE});
+        providers.add(new Boolean[]{Boolean.TRUE, Boolean.FALSE});
+        providers.add(new Boolean[]{Boolean.TRUE, Boolean.TRUE});
         return providers;
     }
 
@@ -65,7 +52,6 @@ public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTes
     @Override
     protected DataSourceProvider getDataSourceProvider() {
         MySQLDataSourceProvider dataSourceProvider = (MySQLDataSourceProvider) super.getDataSourceProvider();
-        dataSourceProvider.setRewriteBatchedStatements(rewriteBatchedStatements);
         dataSourceProvider.setCachePrepStmts(cachePrepStmts);
         dataSourceProvider.setUseServerPrepStmts(useServerPrepStmts);
         return dataSourceProvider;
@@ -73,7 +59,7 @@ public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTes
 
     @Test
     public void testInsert() {
-        LOGGER.info("Test MySQL batch insert with rewriteBatchedStatements={}, cachePrepStmts={}, useServerPrepStmts={}", rewriteBatchedStatements, cachePrepStmts, useServerPrepStmts);
+        LOGGER.info("Test MySQL batch insert with cachePrepStmts={}, useServerPrepStmts={}", cachePrepStmts, useServerPrepStmts);
         AtomicInteger statementCount = new AtomicInteger();
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
@@ -112,9 +98,8 @@ public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTes
                 fail(e.getMessage());
             }
         });
-        LOGGER.info("{}.testInsert for rewriteBatchedStatements={}, cachePrepStmts={}, useServerPrepStmts={} took {} millis",
+        LOGGER.info("{}.testInsert for cachePrepStmts={}, useServerPrepStmts={} took {} millis",
                 getClass().getSimpleName(),
-                rewriteBatchedStatements,
                 cachePrepStmts,
                 useServerPrepStmts,
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
