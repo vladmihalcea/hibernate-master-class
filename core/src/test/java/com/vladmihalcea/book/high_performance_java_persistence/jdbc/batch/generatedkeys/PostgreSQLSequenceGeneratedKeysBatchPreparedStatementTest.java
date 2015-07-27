@@ -1,5 +1,8 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
 
+import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.SequenceBatchEntityProvider;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
 import org.junit.Test;
 
@@ -11,13 +14,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Vlad Mihalcea
  */
-public class GeneratedKeysBatchPreparedStatementTest extends DataSourceProviderIntegrationTest {
+public class PostgreSQLSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
 
-    private AutoIncrementBatchEntityProvider entityProvider = new AutoIncrementBatchEntityProvider();
-
-    public GeneratedKeysBatchPreparedStatementTest(DataSourceProvider dataSourceProvider) {
-        super(dataSourceProvider);
-    }
+    private SequenceBatchEntityProvider entityProvider = new SequenceBatchEntityProvider();
 
     @Override
     protected Class<?>[] entities() {
@@ -38,14 +37,9 @@ public class GeneratedKeysBatchPreparedStatementTest extends DataSourceProviderI
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
-        if(getDataSourceProvider().database() == DataSourceProvider.Database.ORACLE) {
-            LOGGER.info("Oracle doesn't support getGeneratedKeys while using batch updates");
-            return;
-        }
-
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try(PreparedStatement postStatement = connection.prepareStatement(String.format("insert into Post (id, title, version) values (%s, ?, ?)", identifier()), Statement.RETURN_GENERATED_KEYS)) {
+        try(PreparedStatement postStatement = connection.prepareStatement("insert into Post (id, title, version) values (nextval('hibernate_sequence'), ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             int postCount = getPostCount();
 
             int index;
@@ -66,21 +60,6 @@ public class GeneratedKeysBatchPreparedStatementTest extends DataSourceProviderI
                     }
                 }
             }
-            LOGGER.info("Done");
         }
     }
-
-    private String identifier() {
-        DataSourceProvider dataSourceProvider = getDataSourceProvider();
-        if(dataSourceProvider.identifierStrategies().contains(DataSourceProvider.IdentifierStrategy.IDENTITY)) {
-            return "DEFAULT";
-        } else if(dataSourceProvider.database() == DataSourceProvider.Database.ORACLE) {
-            return "hibernate_sequence.NEXTVAL";
-        } else if(dataSourceProvider.database() == DataSourceProvider.Database.POSTGRESQL) {
-            return "nextval('hibernate_sequence')";
-        }
-        throw new UnsupportedOperationException("Unsupported identifier for data provider " + dataSourceProvider);
-    }
-
-
 }

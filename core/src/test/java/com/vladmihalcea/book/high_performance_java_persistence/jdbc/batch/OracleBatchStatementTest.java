@@ -1,16 +1,13 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 
+import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
 
-import javax.persistence.*;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 

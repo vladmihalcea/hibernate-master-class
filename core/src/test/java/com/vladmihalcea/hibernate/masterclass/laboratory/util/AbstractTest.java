@@ -127,7 +127,7 @@ public abstract class AbstractTest {
                 OracleDataSource dataSource = new OracleDataSource();
                 dataSource.setDatabaseName("hibernate-master-class");
                 dataSource.setURL("jdbc:oracle:thin:@localhost:1521/xe");
-                dataSource.setUser("sys as sysdba");
+                dataSource.setUser("oracle");
                 dataSource.setPassword("admin");
                 return dataSource;
             } catch (SQLException e) {
@@ -201,7 +201,7 @@ public abstract class AbstractTest {
 
         @Override
         public Database database() {
-            return Database.ORACLE;
+            return Database.MYSQL;
         }
     }
 
