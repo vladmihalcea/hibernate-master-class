@@ -21,19 +21,34 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractTest {
 
     protected interface DataSourceProvider {
+
+        enum IdentifierStrategy {
+            IDENTITY,
+            SEQUENCE
+        }
+
+        enum Database {
+            HSQLDB,
+            POSTGRESQL,
+            ORACLE,
+            MYSQL,
+            SQLSERVER
+        }
+
         String hibernateDialect();
 
         DataSource dataSource();
+
+        List<IdentifierStrategy> identifierStrategies();
+
+        Database database();
     }
 
     static {
@@ -61,6 +76,16 @@ public abstract class AbstractTest {
             dataSource.setPassword("");
             return dataSource;
         }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.IDENTITY, IdentifierStrategy.SEQUENCE);
+        }
+
+        @Override
+        public Database database() {
+            return Database.HSQLDB;
+        }
     }
 
     public static class PostgreSQLDataSourceProvider implements DataSourceProvider {
@@ -77,6 +102,16 @@ public abstract class AbstractTest {
             dataSource.setUser("postgres");
             dataSource.setPassword("admin");
             return dataSource;
+        }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.SEQUENCE);
+        }
+
+        @Override
+        public Database database() {
+            return Database.POSTGRESQL;
         }
     }
 
@@ -98,6 +133,16 @@ public abstract class AbstractTest {
             } catch (SQLException e) {
                 throw new IllegalStateException(e);
             }
+        }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.SEQUENCE);
+        }
+
+        @Override
+        public Database database() {
+            return Database.ORACLE;
         }
     }
 
@@ -148,6 +193,16 @@ public abstract class AbstractTest {
             );
             return dataSource;
         }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.IDENTITY);
+        }
+
+        @Override
+        public Database database() {
+            return Database.ORACLE;
+        }
     }
 
     public static class SQLServerDataSourceProvider implements DataSourceProvider {
@@ -161,6 +216,16 @@ public abstract class AbstractTest {
             SQLServerDataSource dataSource = new SQLServerDataSource();
             dataSource.setURL("jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
             return dataSource;
+        }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.IDENTITY, IdentifierStrategy.SEQUENCE);
+        }
+
+        @Override
+        public Database database() {
+            return Database.SQLSERVER;
         }
     }
 
