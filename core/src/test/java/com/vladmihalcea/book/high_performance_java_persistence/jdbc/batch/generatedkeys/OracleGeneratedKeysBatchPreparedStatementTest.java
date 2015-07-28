@@ -35,10 +35,18 @@ public class OracleGeneratedKeysBatchPreparedStatementTest extends AbstractOracl
         LOGGER.info("Identity generated keys for Oracle");
 
         try(Statement statement = connection.createStatement()) {
+            statement.executeUpdate("drop sequence post");
+        } catch (Exception ignore) {}
+
+        try(Statement statement = connection.createStatement()) {
             statement.executeUpdate("drop table post");
         } catch (Exception ignore) {}
 
         try(Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate(
+                "CREATE SEQUENCE post_seq"
+            );
 
             statement.executeUpdate(
                 "create table post (" +
@@ -47,6 +55,7 @@ public class OracleGeneratedKeysBatchPreparedStatementTest extends AbstractOracl
                 "    version number(10,0) not null, " +
                 "    primary key (id))"
             );
+
             statement.executeUpdate(
                 "create or replace trigger post_identity" +
                 "   before insert on post " +

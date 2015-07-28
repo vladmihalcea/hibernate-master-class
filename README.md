@@ -20,12 +20,17 @@ The Integration Tests require some external configurations:
  You need to download and install [Oracle XE](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html) 
 
  Set the *sys* password to *admin*
+ 
+ Connect to Oracle using the "sys as sysdba" user and create a new user:
+ 
+ > create user oracle identified by admin default tablespace users;
+ > grant dba to oracle;
 
  You need to download the [Orcale JDBC Driver (ojdbc6.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
  
  You need to install the ojdbc6.jar on your local Maven repository using the following command:
  
- $ mvn install:install-file -Dfile=ojdbc6.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
+ > $ mvn install:install-file -Dfile=ojdbc6.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
  
 * MySQL
   
@@ -44,4 +49,4 @@ The Integration Tests require some external configurations:
 
  You need to [download the SQL Server JDBC Driver](https://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774) and install the *sqljdbc4.jar* on your local Maven repository using the following command:
  
- $ mvn install:install-file -Dfile=sqljdbc4.jar -Dpackaging=jar -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.0
+ > $ mvn install:install-file -Dfile=sqljdbc4.jar -Dpackaging=jar -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.0
