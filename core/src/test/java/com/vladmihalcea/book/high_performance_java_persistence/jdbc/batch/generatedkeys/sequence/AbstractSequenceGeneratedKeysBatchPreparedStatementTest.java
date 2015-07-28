@@ -1,20 +1,19 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.sequence;
 
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.SequenceBatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.junit.Test;
 
 import java.sql.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * GeneratedKeysBatchPreparedStatementTest - Base class for testing JDBC PreparedStatement generated keys
+ * AbstractSequenceGeneratedKeysBatchPreparedStatementTest - Base class for testing JDBC PreparedStatement generated keys for Sequences
  *
  * @author Vlad Mihalcea
  */
-public class PostgreSQLSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
+public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractTest {
 
     private SequenceBatchEntityProvider entityProvider = new SequenceBatchEntityProvider();
 
@@ -37,9 +36,12 @@ public class PostgreSQLSequenceGeneratedKeysBatchPreparedStatementTest extends A
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
+        DatabaseMetaData databaseMetaData = connection.getMetaData();
+        LOGGER.info("{} Driver supportsGetGeneratedKeys: {}", getDataSourceProvider().database(), databaseMetaData.supportsGetGeneratedKeys());
+
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try(PreparedStatement postStatement = connection.prepareStatement("insert into Post (id, title, version) values (nextval('hibernate_sequence'), ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try(PreparedStatement postStatement = connection.prepareStatement("insert into Post (id, title, version) values (?, ?, ?)")) {
             int postCount = getPostCount();
 
             int index;
@@ -47,19 +49,28 @@ public class PostgreSQLSequenceGeneratedKeysBatchPreparedStatementTest extends A
             for (int i = 0; i < postCount; i++) {
                 index = 0;
 
+                postStatement.setLong(++index, nextSequence(connection));
                 postStatement.setString(++index, String.format("Post no. %1$d", i));
                 postStatement.setInt(++index, 0);
                 postStatement.addBatch();
                 int count = postStatementCount.incrementAndGet();
                 if(count % getBatchSize() == 0) {
                     postStatement.executeBatch();
-                    try(ResultSet resultSet = postStatement.getGeneratedKeys()) {
-                        while (resultSet.next()) {
-                            LOGGER.info("Generated identifier: {}", resultSet.getLong(1));
-                        }
-                    }
                 }
             }
         }
     }
+
+    protected long nextSequence(Connection connection) throws SQLException {
+        try(Statement statement = connection.createStatement()) {
+            try(ResultSet resultSet = statement.executeQuery(callSequenceSyntax())) {
+                resultSet.next();
+                long id = resultSet.getLong(1);
+                LOGGER.info("Generated id {}", id);
+                return id;
+            }
+        }
+    }
+
+    protected abstract String callSequenceSyntax();
 }

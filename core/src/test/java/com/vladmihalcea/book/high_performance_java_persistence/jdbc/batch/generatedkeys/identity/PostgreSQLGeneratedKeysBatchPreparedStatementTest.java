@@ -1,6 +1,8 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.identity;
 
+import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.AutoIncrementBatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.junit.Test;
 
 import java.sql.*;
@@ -11,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Vlad Mihalcea
  */
-public class OracleGeneratedKeysBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
+public class PostgreSQLGeneratedKeysBatchPreparedStatementTest extends AbstractPostgreSQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -32,45 +34,23 @@ public class OracleGeneratedKeysBatchPreparedStatementTest extends AbstractOracl
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
-        LOGGER.info("Identity generated keys for Oracle");
+        LOGGER.info("Identity generated keys for PostgreSQL");
 
         try(Statement statement = connection.createStatement()) {
-            statement.executeUpdate("drop sequence post");
-        } catch (Exception ignore) {}
-
-        try(Statement statement = connection.createStatement()) {
-            statement.executeUpdate("drop table post");
-        } catch (Exception ignore) {}
-
-        try(Statement statement = connection.createStatement()) {
-
-            statement.executeUpdate(
-                "CREATE SEQUENCE post_seq"
-            );
+            statement.executeUpdate("drop table if exists post cascade");
 
             statement.executeUpdate(
                 "create table post (" +
-                "    id number(19,0) not null, " +
-                "    title varchar2(255 char), " +
-                "    version number(10,0) not null, " +
+                "    id bigserial not null, " +
+                "    title varchar(255), " +
+                "    version int4 not null, " +
                 "    primary key (id))"
-            );
-
-            statement.executeUpdate(
-                "create or replace trigger post_identity" +
-                "   before insert on post " +
-                "   for each row" +
-                "   begin" +
-                "       select post_seq.nextval" +
-                "       into   :new.id" +
-                "       from   dual;" +
-                "end;"
             );
         }
 
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", new int[]{1})) {
+        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             int postCount = getPostCount();
 
             int index;

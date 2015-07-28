@@ -1,8 +1,8 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.identity;
 
-import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.AutoIncrementBatchEntityProvider;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractMySQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractSQLServerIntegrationTest;
+import org.hibernate.exception.GenericJDBCException;
 import org.junit.Test;
 
 import java.sql.*;
@@ -13,14 +13,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Vlad Mihalcea
  */
-public class PostgreSQLGeneratedKeysBatchPreparedStatementTest extends AbstractPostgreSQLIntegrationTest {
+public class SQLServerGeneratedKeysBatchPreparedStatementTest extends AbstractSQLServerIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
         return new Class[]{};
     }
 
-    @Test
+    @Test(expected = GenericJDBCException.class)
     public void testBatch() {
         doInConnection(this::batchInsert);
     }
@@ -34,23 +34,25 @@ public class PostgreSQLGeneratedKeysBatchPreparedStatementTest extends AbstractP
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
-        LOGGER.info("Identity generated keys for PostgreSQL");
+        LOGGER.info("Identity generated keys for SQL Server");
 
         try(Statement statement = connection.createStatement()) {
-            statement.executeUpdate("drop table if exists post cascade");
+            statement.executeUpdate("drop table post");
+        } catch (Exception ignore) {}
 
+        try(Statement statement = connection.createStatement()) {
             statement.executeUpdate(
                 "create table post (" +
-                "    id bigserial not null, " +
+                "    id bigint identity not null, " +
                 "    title varchar(255), " +
-                "    version int4 not null, " +
+                "    version int not null, " +
                 "    primary key (id))"
             );
         }
 
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", new int[]{1})) {
             int postCount = getPostCount();
 
             int index;
@@ -73,7 +75,7 @@ public class PostgreSQLGeneratedKeysBatchPreparedStatementTest extends AbstractP
                 postStatement.addBatch();
                 int count = postStatementCount.incrementAndGet();
                 if (count % getBatchSize() == 0) {
-                    postStatement.executeBatch();
+                    int[] updateCount = postStatement.executeBatch();
                     try (ResultSet resultSet = postStatement.getGeneratedKeys()) {
                         while (resultSet.next()) {
                             LOGGER.info("Generated identifier: {}", resultSet.getLong(1));

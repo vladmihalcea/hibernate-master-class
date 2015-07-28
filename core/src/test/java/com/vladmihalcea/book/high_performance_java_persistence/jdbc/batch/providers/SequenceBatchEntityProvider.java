@@ -25,7 +25,8 @@ public class SequenceBatchEntityProvider implements EntityProvider {
     public static class Post {
 
         @Id
-        @GeneratedValue(strategy = GenerationType.SEQUENCE)
+        @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "post_seq")
+        @SequenceGenerator(name="post_seq", sequenceName="post_seq")
         private Long id;
 
         private String title;

@@ -1,7 +1,7 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.identity;
 
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractMySQLIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractSQLServerIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
 import org.junit.Test;
 
 import java.sql.*;
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Vlad Mihalcea
  */
-public class SQLServerGeneratedKeysBatchPreparedStatementTest extends AbstractSQLServerIntegrationTest {
+public class MySQLGeneratedKeysBatchPreparedStatementTest extends AbstractMySQLIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
@@ -33,25 +33,23 @@ public class SQLServerGeneratedKeysBatchPreparedStatementTest extends AbstractSQ
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
-        LOGGER.info("Identity generated keys for SQL Server");
+        LOGGER.info("Identity generated keys for MySQL");
 
         try(Statement statement = connection.createStatement()) {
-            statement.executeUpdate("drop table post");
-        } catch (Exception ignore) {}
+            statement.executeUpdate("drop table if exists post cascade");
 
-        try(Statement statement = connection.createStatement()) {
             statement.executeUpdate(
                 "create table post (" +
-                "    id bigint identity not null, " +
+                "    id bigint not null auto_increment, " +
                 "    title varchar(255), " +
-                "    version int not null, " +
+                "    version integer not null, " +
                 "    primary key (id))"
             );
         }
 
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", new int[]{1})) {
+        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             int postCount = getPostCount();
 
             int index;
@@ -74,7 +72,7 @@ public class SQLServerGeneratedKeysBatchPreparedStatementTest extends AbstractSQ
                 postStatement.addBatch();
                 int count = postStatementCount.incrementAndGet();
                 if (count % getBatchSize() == 0) {
-                    int[] updateCount = postStatement.executeBatch();
+                    postStatement.executeBatch();
                     try (ResultSet resultSet = postStatement.getGeneratedKeys()) {
                         while (resultSet.next()) {
                             LOGGER.info("Generated identifier: {}", resultSet.getLong(1));

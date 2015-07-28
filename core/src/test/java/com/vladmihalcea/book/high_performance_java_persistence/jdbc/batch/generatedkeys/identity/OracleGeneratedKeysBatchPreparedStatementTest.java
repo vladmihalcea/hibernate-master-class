@@ -1,26 +1,29 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.identity;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractMySQLIntegrationTest;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractPostgreSQLIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import org.hibernate.exception.GenericJDBCException;
 import org.junit.Test;
 
 import java.sql.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * GeneratedKeysBatchPreparedStatementTest - Base class for testing JDBC PreparedStatement generated keys
  *
  * @author Vlad Mihalcea
  */
-public class MySQLGeneratedKeysBatchPreparedStatementTest extends AbstractMySQLIntegrationTest {
+public class OracleGeneratedKeysBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
 
     @Override
     protected Class<?>[] entities() {
         return new Class[]{};
     }
 
-    @Test
-    public void testBatch() {
+    @Test(expected = GenericJDBCException.class)
+    public void testBatch() throws SQLException {
         doInConnection(this::batchInsert);
     }
 
@@ -33,23 +36,45 @@ public class MySQLGeneratedKeysBatchPreparedStatementTest extends AbstractMySQLI
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
-        LOGGER.info("Identity generated keys for MySQL");
+        LOGGER.info("Identity generated keys for Oracle");
 
         try(Statement statement = connection.createStatement()) {
-            statement.executeUpdate("drop table if exists post cascade");
+            statement.executeUpdate("drop sequence post_seq");
+        } catch (Exception ignore) {}
+
+        try(Statement statement = connection.createStatement()) {
+            statement.executeUpdate("drop table post");
+        } catch (Exception ignore) {}
+
+        try(Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate(
+                "CREATE SEQUENCE post_seq"
+            );
 
             statement.executeUpdate(
                 "create table post (" +
-                "    id bigint not null auto_increment, " +
-                "    title varchar(255), " +
-                "    version integer not null, " +
+                "    id number(19,0) not null, " +
+                "    title varchar2(255 char), " +
+                "    version number(10,0) not null, " +
                 "    primary key (id))"
+            );
+
+            statement.executeUpdate(
+                "create or replace trigger post_identity" +
+                "   before insert on post " +
+                "   for each row" +
+                "   begin" +
+                "       select post_seq.nextval" +
+                "       into   :new.id" +
+                "       from   dual;" +
+                "end;"
             );
         }
 
         AtomicInteger postStatementCount = new AtomicInteger();
 
-        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version) values (?, ?)", new int[]{1})) {
             int postCount = getPostCount();
 
             int index;
