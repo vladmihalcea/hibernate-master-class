@@ -7,6 +7,10 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.gener
  */
 public class SQLServerSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractSequenceGeneratedKeysBatchPreparedStatementTest {
 
+    public SQLServerSequenceGeneratedKeysBatchPreparedStatementTest(int allocationSize) {
+        super(allocationSize);
+    }
+
     @Override
     protected String callSequenceSyntax() {
         return "select NEXT VALUE FOR post_seq";

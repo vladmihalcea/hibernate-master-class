@@ -3,17 +3,42 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.gener
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.SequenceBatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * AbstractSequenceGeneratedKeysBatchPreparedStatementTest - Base class for testing JDBC PreparedStatement generated keys for Sequences
  *
  * @author Vlad Mihalcea
  */
+@RunWith(Parameterized.class)
 public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractTest {
 
     private SequenceBatchEntityProvider entityProvider = new SequenceBatchEntityProvider();
+
+    private int allocationSize = 1;
+
+    public AbstractSequenceGeneratedKeysBatchPreparedStatementTest(int allocationSize) {
+        this.allocationSize = allocationSize;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Integer[]> rdbmsDataSourceProvider() {
+        List<Integer[]> providers = new ArrayList<>();
+        providers.add(new Integer[]{1});
+        providers.add(new Integer[]{5});
+        providers.add(new Integer[]{10});
+        providers.add(new Integer[]{15});
+        providers.add(new Integer[]{20});
+        providers.add(new Integer[]{25});
+        return providers;
+    }
 
     @Override
     protected Class<?>[] entities() {
@@ -26,7 +51,7 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
     }
 
     protected int getPostCount() {
-        return 10;
+        return 5 * 1000;
     }
 
     protected int getBatchSize() {
@@ -34,7 +59,7 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
     }
 
     protected int getAllocationSize() {
-        return 1;
+        return allocationSize;
     }
 
     protected void batchInsert(Connection connection) throws SQLException {
@@ -45,6 +70,8 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
         createSequence(connection);
 
         int count = 0;
+
+        long startNanos = System.nanoTime();
 
         try(PreparedStatement postStatement = connection.prepareStatement(
                 "insert into Post (id, title, version) " +
@@ -61,7 +88,6 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
                             callSequenceSyntax())) {
                         resultSet.next();
                         id = resultSet.getLong(1);
-                        LOGGER.info("Generated id {}", id);
                     }
                 }
 
@@ -75,6 +101,12 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
             }
             postStatement.executeBatch();
         }
+
+        LOGGER.info("{}.testInsert for {} using allocation size {} took {} millis",
+                getClass().getSimpleName(),
+                getDataSourceProvider().getClass().getSimpleName(),
+                getAllocationSize(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
     protected abstract String callSequenceSyntax();

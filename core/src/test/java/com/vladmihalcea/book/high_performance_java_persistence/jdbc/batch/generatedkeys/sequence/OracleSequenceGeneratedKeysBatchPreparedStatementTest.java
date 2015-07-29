@@ -7,6 +7,10 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.gener
  */
 public class OracleSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractSequenceGeneratedKeysBatchPreparedStatementTest {
 
+    public OracleSequenceGeneratedKeysBatchPreparedStatementTest(int allocationSize) {
+        super(allocationSize);
+    }
+
     @Override
     protected String callSequenceSyntax() {
         return "select post_seq.NEXTVAL from dual";
