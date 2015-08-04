@@ -17,28 +17,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Vlad Mihalcea
  */
-@RunWith(Parameterized.class)
 public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractTest {
 
     private SequenceBatchEntityProvider entityProvider = new SequenceBatchEntityProvider();
-
-    private int allocationSize = 1;
-
-    public AbstractSequenceGeneratedKeysBatchPreparedStatementTest(int allocationSize) {
-        this.allocationSize = allocationSize;
-    }
-
-    @Parameterized.Parameters
-    public static Collection<Integer[]> rdbmsDataSourceProvider() {
-        List<Integer[]> providers = new ArrayList<>();
-        providers.add(new Integer[]{1});
-        providers.add(new Integer[]{5});
-        providers.add(new Integer[]{10});
-        providers.add(new Integer[]{15});
-        providers.add(new Integer[]{20});
-        providers.add(new Integer[]{25});
-        return providers;
-    }
 
     @Override
     protected Class<?>[] entities() {
@@ -59,7 +40,7 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
     }
 
     protected int getAllocationSize() {
-        return allocationSize;
+        return 1;
     }
 
     protected void batchInsert(Connection connection) throws SQLException {

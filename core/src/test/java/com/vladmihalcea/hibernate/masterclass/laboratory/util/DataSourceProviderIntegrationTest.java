@@ -24,10 +24,10 @@ public abstract class DataSourceProviderIntegrationTest extends AbstractTest {
     @Parameterized.Parameters
     public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
         List<DataSourceProvider[]> providers = new ArrayList<>();
-        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
         providers.add(new DataSourceProvider[]{new OracleDataSourceProvider()});
-        providers.add(new DataSourceProvider[]{new MySQLDataSourceProvider()});
         providers.add(new DataSourceProvider[]{new SQLServerDataSourceProvider()});
+        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
+        providers.add(new DataSourceProvider[]{new MySQLDataSourceProvider()});
         return providers;
     }
 

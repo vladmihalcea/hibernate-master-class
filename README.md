@@ -24,7 +24,12 @@ The Integration Tests require some external configurations:
  Connect to Oracle using the "sys as sysdba" user and create a new user:
  
  > create user oracle identified by admin default tablespace users;
+ >
  > grant dba to oracle;
+ > 
+ > alter system set processes=1000 scope=spfile;
+ >
+ > alter system set sessions=1000 scope=spfile;
 
  You need to download the [Orcale JDBC Driver (ojdbc6.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
  

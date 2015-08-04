@@ -46,6 +46,10 @@ public abstract class AbstractTest {
 
         DataSource dataSource();
 
+        Class<? extends DataSource> dataSourceClassName();
+
+        Properties dataSourceProperties();
+
         List<IdentifierStrategy> identifierStrategies();
 
         Database database();
@@ -78,6 +82,20 @@ public abstract class AbstractTest {
         }
 
         @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return JDBCDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("url", "jdbc:hsqldb:mem:test");
+            properties.setProperty("user", "sa");
+            properties.setProperty("password", "");
+            return properties;
+        }
+
+        @Override
         public List<IdentifierStrategy> identifierStrategies() {
             return Arrays.asList(IdentifierStrategy.IDENTITY, IdentifierStrategy.SEQUENCE);
         }
@@ -102,6 +120,21 @@ public abstract class AbstractTest {
             dataSource.setUser("postgres");
             dataSource.setPassword("admin");
             return dataSource;
+        }
+
+        @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return PGSimpleDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("databaseName", "hibernate-master-class");
+            properties.setProperty("serverName", "localhost");
+            properties.setProperty("user", "postgres");
+            properties.setProperty("password", "admin");
+            return properties;
         }
 
         @Override
@@ -133,6 +166,21 @@ public abstract class AbstractTest {
             } catch (SQLException e) {
                 throw new IllegalStateException(e);
             }
+        }
+
+        @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return OracleDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("databaseName", "hibernate-master-class");
+            properties.setProperty("URL", "jdbc:oracle:thin:@localhost:1521/xe");
+            properties.setProperty("user", "oracle");
+            properties.setProperty("password", "admin");
+            return properties;
         }
 
         @Override
@@ -195,6 +243,18 @@ public abstract class AbstractTest {
         }
 
         @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return MysqlDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("url", "jdbc:mysql://localhost/hibernate-master-class?user=mysql&password=admin");
+            return properties;
+        }
+
+        @Override
         public List<IdentifierStrategy> identifierStrategies() {
             return Arrays.asList(IdentifierStrategy.IDENTITY);
         }
@@ -216,6 +276,18 @@ public abstract class AbstractTest {
             SQLServerDataSource dataSource = new SQLServerDataSource();
             dataSource.setURL("jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
             return dataSource;
+        }
+
+        @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return SQLServerDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("URL", "jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
+            return properties;
         }
 
         @Override

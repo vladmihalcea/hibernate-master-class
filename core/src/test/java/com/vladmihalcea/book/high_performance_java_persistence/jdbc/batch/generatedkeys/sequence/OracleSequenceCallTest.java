@@ -1,11 +1,11 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.sequence;
 
 /**
- * OracleSequenceGeneratedKeysBatchPreparedStatementTest - Oracle class for testing JDBC PreparedStatement generated keys for Sequences
+ * OracleSequenceCallTest - Oracle sequence call
  *
  * @author Vlad Mihalcea
  */
-public class OracleSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractSequenceGeneratedKeysBatchPreparedStatementTest {
+public class OracleSequenceCallTest extends AbstractSequenceCallTest {
 
     @Override
     protected String callSequenceSyntax() {

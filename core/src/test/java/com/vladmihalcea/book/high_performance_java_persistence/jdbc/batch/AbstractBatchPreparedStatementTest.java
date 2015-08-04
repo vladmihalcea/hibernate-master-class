@@ -103,9 +103,10 @@ public abstract class AbstractBatchPreparedStatementTest extends DataSourceProvi
             }
             onEnd(postCommentStatement);
 
-            LOGGER.info("{}.testInsert for {} took {} millis",
+            LOGGER.info("{}.testInsert for {} using batch size {} took {} millis",
                     getClass().getSimpleName(),
                     getDataSourceProvider().getClass().getSimpleName(),
+                    getBatchSize(),
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
 
         }

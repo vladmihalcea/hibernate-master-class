@@ -115,6 +115,25 @@
         </dependency>
 
         <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${codahale.metrics.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikari.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
@@ -136,6 +155,10 @@
         <oracle.version>11.2.0.4</oracle.version>
         <mysql.version>5.1.36</mysql.version>
         <mssql.version>4.0</mssql.version>
+
+        <codahale.metrics.version>3.1.0</codahale.metrics.version>
+        <hikari.version>1.3.3</hikari.version>
+
         <junit.version>4.11</junit.version>
     </properties>
 

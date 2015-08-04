@@ -1,11 +1,11 @@
 package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.generatedkeys.sequence;
 
 /**
- * SQLServerSequenceGeneratedKeysBatchPreparedStatementTest - SQL Server class for testing JDBC PreparedStatement generated keys for Sequences
+ * PostgreSQLSequenceCallTest - PostgreSQL sequence call
  *
  * @author Vlad Mihalcea
  */
-public class SQLServerSequenceGeneratedKeysBatchPreparedStatementTest extends AbstractSequenceGeneratedKeysBatchPreparedStatementTest {
+public class SQLServerSequenceCallTest extends AbstractSequenceCallTest {
 
     @Override
     protected String callSequenceSyntax() {
