@@ -572,7 +572,7 @@ public abstract class AbstractTest {
     protected <V> V sleep(int millis, Callable<V> callable) {
         V result = null;
         try {
-            LOGGER.info("Wait {} ms!", millis);
+            //LOGGER.debug("Wait {} ms!", millis);
             if (callable != null) {
                 result = callable.call();
             }
