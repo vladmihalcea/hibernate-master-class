@@ -61,18 +61,7 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
 
             for (int i = 0; i < postCount; i++) {
                 int index = 0;
-
-                long id;
-
-                try(Statement statement = connection.createStatement()) {
-                    try(ResultSet resultSet = statement.executeQuery(
-                            callSequenceSyntax())) {
-                        resultSet.next();
-                        id = resultSet.getLong(1);
-                    }
-                }
-
-                postStatement.setLong(++index, id);
+                postStatement.setLong(++index, getNextSequenceValue(connection));
                 postStatement.setString(++index, String.format("Post no. %1$d", i));
                 postStatement.setInt(++index, 0);
                 postStatement.addBatch();
@@ -88,6 +77,17 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
                 getDataSourceProvider().getClass().getSimpleName(),
                 getAllocationSize(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    }
+
+    private long getNextSequenceValue(Connection connection)
+        throws SQLException {
+        try(Statement statement = connection.createStatement()) {
+            try(ResultSet resultSet = statement.executeQuery(
+                callSequenceSyntax())) {
+                resultSet.next();
+                return resultSet.getLong(1);
+            }
+        }
     }
 
     protected abstract String callSequenceSyntax();

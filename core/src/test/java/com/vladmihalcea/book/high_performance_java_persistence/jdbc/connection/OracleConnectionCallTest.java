@@ -27,15 +27,6 @@ public class OracleConnectionCallTest extends AbstractOracleXEIntegrationTest {
 
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-    private MetricRegistry metricRegistry = new MetricRegistry();
-
-    private Timer timer = metricRegistry.timer("callTimer");
-
-    private Slf4jReporter logReporter = Slf4jReporter
-            .forRegistry(metricRegistry)
-            .outputTo(LOGGER)
-            .build();
-
     private int callCount = 1000;
 
     @Override
@@ -46,22 +37,22 @@ public class OracleConnectionCallTest extends AbstractOracleXEIntegrationTest {
     @Test
     public void testConnections() throws SQLException {
         LOGGER.info("Test without pooling for {}", getDataSourceProvider().database());
-        test(getDataSourceProvider().dataSource(), 10);
-        test(getDataSourceProvider().dataSource(), 35);
+        simulateLowLatencyTransactions(getDataSourceProvider().dataSource(), 10);
+        simulateLowLatencyTransactions(getDataSourceProvider().dataSource(), 35);
     }
 
-    private void test(DataSource dataSource, int waitMillis) throws SQLException {
+    private void simulateLowLatencyTransactions(
+            DataSource dataSource, int waitMillis)
+            throws SQLException {
         for (int i = 0; i < callCount; i++) {
             try {
-                long startNanos = System.nanoTime();
-                try (Connection connection = dataSource.getConnection()) {
+                try (Connection connection =
+                     dataSource.getConnection()) {
+                    sleep(waitMillis);
                 }
-                timer.update(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
-                sleep(waitMillis);
             } catch (SQLException e) {
-                LOGGER.info("Exception on iteration " + i, e);
+                LOGGER.error("Exception on iteration " + i, e);
             }
         }
-        logReporter.report();
     }
 }

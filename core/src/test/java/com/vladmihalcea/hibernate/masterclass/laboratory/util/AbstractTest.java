@@ -421,11 +421,19 @@ public abstract class AbstractTest {
         return properties;
     }
 
-    private ProxyDataSource newDataSource() {
-        ProxyDataSource proxyDataSource = new ProxyDataSource();
-        proxyDataSource.setDataSource(getDataSourceProvider().dataSource());
-        proxyDataSource.setListener(new SLF4JQueryLoggingListener());
-        return proxyDataSource;
+    private DataSource newDataSource() {
+        if (proxyDataSource()) {
+            ProxyDataSource proxyDataSource = new ProxyDataSource();
+            proxyDataSource.setDataSource(getDataSourceProvider().dataSource());
+            proxyDataSource.setListener(new SLF4JQueryLoggingListener());
+            return proxyDataSource;
+        } else {
+            return getDataSourceProvider().dataSource();
+        }
+    }
+
+    protected boolean proxyDataSource() {
+        return true;
     }
 
     protected DataSourceProvider getDataSourceProvider() {
