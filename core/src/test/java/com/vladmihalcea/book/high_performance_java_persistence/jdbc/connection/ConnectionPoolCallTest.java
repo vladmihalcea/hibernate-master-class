@@ -8,6 +8,7 @@ import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Vlad Mihalcea
  */
+@Ignore
 public class ConnectionPoolCallTest extends DataSourceProviderIntegrationTest {
 
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());

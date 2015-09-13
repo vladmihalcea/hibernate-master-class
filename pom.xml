@@ -115,6 +115,13 @@
         </dependency>
 
         <dependency>
+            <groupId>net.sourceforge.jtds</groupId>
+            <artifactId>jtds</artifactId>
+            <version>${jtds.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
             <version>${codahale.metrics.version}</version>
@@ -155,6 +162,7 @@
         <oracle.version>11.2.0.4</oracle.version>
         <mysql.version>5.1.36</mysql.version>
         <mssql.version>4.0</mssql.version>
+        <jtds.version>1.3.1</jtds.version>
 
         <codahale.metrics.version>3.1.0</codahale.metrics.version>
         <hikari.version>1.3.3</hikari.version>

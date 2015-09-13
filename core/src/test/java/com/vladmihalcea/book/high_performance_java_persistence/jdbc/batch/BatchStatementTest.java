@@ -49,6 +49,6 @@ public class BatchStatementTest extends AbstractBatchStatementTest {
 
     @Override
     protected int getBatchSize() {
-        return 100 * 10;
+        return 100 ;
     }
 }

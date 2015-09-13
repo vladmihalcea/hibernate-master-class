@@ -2,6 +2,7 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import net.sourceforge.jtds.jdbcx.JtdsDataSource;
 import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
 import net.ttddyy.dsproxy.support.ProxyDataSource;
 import oracle.jdbc.pool.OracleDataSource;
@@ -287,6 +288,50 @@ public abstract class AbstractTest {
         public Properties dataSourceProperties() {
             Properties properties = new Properties();
             properties.setProperty("URL", "jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=hibernate_master_class;user=sa;password=adm1n");
+            return properties;
+        }
+
+        @Override
+        public List<IdentifierStrategy> identifierStrategies() {
+            return Arrays.asList(IdentifierStrategy.IDENTITY, IdentifierStrategy.SEQUENCE);
+        }
+
+        @Override
+        public Database database() {
+            return Database.SQLSERVER;
+        }
+    }
+
+    public static class JTDSDataSourceProvider implements DataSourceProvider {
+        @Override
+        public String hibernateDialect() {
+            return "org.hibernate.dialect.SQLServer2012Dialect";
+        }
+
+        @Override
+        public DataSource dataSource() {
+            JtdsDataSource dataSource = new JtdsDataSource();
+            dataSource.setServerName("localhost");
+            dataSource.setDatabaseName("hibernate_master_class");
+            dataSource.setInstance("SQLEXPRESS");
+            dataSource.setUser("sa");
+            dataSource.setPassword("adm1n");
+            return dataSource;
+        }
+
+        @Override
+        public Class<? extends DataSource> dataSourceClassName() {
+            return JtdsDataSource.class;
+        }
+
+        @Override
+        public Properties dataSourceProperties() {
+            Properties properties = new Properties();
+            properties.setProperty("databaseName", "hibernate_master_class");
+            properties.setProperty("serverName", "localhost");
+            properties.setProperty("instance", "SQLEXPRESS");
+            properties.setProperty("user", "sa");
+            properties.setProperty("password", "adm1n");
             return properties;
         }
 

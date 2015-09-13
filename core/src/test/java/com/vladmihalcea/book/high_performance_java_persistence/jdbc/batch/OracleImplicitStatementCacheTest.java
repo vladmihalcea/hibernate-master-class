@@ -3,20 +3,16 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import oracle.jdbc.OracleConnection;
-import oracle.jdbc.OraclePreparedStatement;
 import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * OracleImplicitStatementCacheTest - Test Oracle implicit Statement cache
@@ -25,7 +21,9 @@ import static org.junit.Assert.fail;
  */
 public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
+    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+
+    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
@@ -55,40 +53,88 @@ public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegratio
         return entityProvider.entities();
     }
 
+    @Override
+    public void init() {
+        super.init();
+        doInConnection(connection -> {
+            try (
+                    PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
+                    PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT);
+            ) {
+                int postCount = getPostCount();
+                int postCommentCount = getPostCommentCount();
+
+                int index;
+
+                for (int i = 0; i < postCount; i++) {
+                    index = 0;
+                    postStatement.setString(++index, String.format("Post no. %1$d", i));
+                    postStatement.setInt(++index, 0);
+                    postStatement.setLong(++index, i);
+                    postStatement.executeUpdate();
+                }
+
+                for (int i = 0; i < postCount; i++) {
+                    for (int j = 0; j < postCommentCount; j++) {
+                        index = 0;
+                        postCommentStatement.setLong(++index, i);
+                        postCommentStatement.setString(++index, String.format("Post comment %1$d", j));
+                        postCommentStatement.setInt(++index, (int) (Math.random() * 1000));
+                        postCommentStatement.setLong(++index, (postCommentCount * i) + j);
+                        postCommentStatement.executeUpdate();
+                    }
+                }
+            } catch (SQLException e) {
+                fail(e.getMessage());
+            }
+        });
+    }
+
     @Test
-    public void testInsert() {
-        LOGGER.info("Test batch insert");
+    public void testStatementCaching() {
+        selectWhenCaching(true);
+    }
+
+    @Test
+    public void testStatementWithoutCaching() {
+        selectWhenCaching(false);
+    }
+
+    private void selectWhenCaching(boolean caching) {
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
             OracleConnection oracleConnection = (OracleConnection) connection;
             assertTrue(oracleConnection.getImplicitCachingEnabled());
             assertEquals(5, oracleConnection.getStatementCacheSize());
-            try (Statement statement = connection.createStatement()) {
-                int postCount = getPostCount();
 
-                for(int i = 0; i < postCount; i++) {
-                    statement.executeUpdate(String.format(INSERT_POST, i));
-                }
-            } catch (SQLException e) {
-                fail(e.getMessage());
-            }
-            for(int i = 0; i < 5; i++) {
-                try (
-                        PreparedStatement statement = connection.prepareStatement("select count(*) from post where id > ?");
-                ) {
-                    OraclePreparedStatement oraclePreparedStatement = (OraclePreparedStatement) statement;
-                    assertTrue(statement.isPoolable());
+            for (int i = 0; i < 100000; i++) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "select p.title, pc.review " +
+                                "from post p left join postcomment pc on p.id = pc.post_id " +
+                                "where EXISTS ( " +
+                                "   select 1 from postcomment where version = ? and id > p.id " +
+                                ")"
+                )) {
+                    statement.setPoolable(caching);
+                    statement.setInt(1, i);
+                    statement.execute();
+                } catch (SQLException e) {
+                    fail(e.getMessage());
                 }
             }
         });
-        LOGGER.info("{}.testInsert for {} took {} millis",
+        LOGGER.info("{} when caching Statements is {} took {} millis",
                 getClass().getSimpleName(),
-                getDataSourceProvider().getClass().getSimpleName(),
+                caching,
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
     protected int getPostCount() {
         return 1000;
+    }
+
+    protected int getPostCommentCount() {
+        return 5;
     }
 
     @Override
