@@ -264,6 +264,15 @@ public abstract class AbstractTest {
         public Database database() {
             return Database.MYSQL;
         }
+
+        @Override
+        public String toString() {
+            return "MySQLDataSourceProvider{" +
+                    "rewriteBatchedStatements=" + rewriteBatchedStatements +
+                    ", cachePrepStmts=" + cachePrepStmts +
+                    ", useServerPrepStmts=" + useServerPrepStmts +
+                    '}';
+        }
     }
 
     public static class SQLServerDataSourceProvider implements DataSourceProvider {
