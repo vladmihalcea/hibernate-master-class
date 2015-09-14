@@ -1,11 +1,8 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.caching;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
 import net.sourceforge.jtds.jdbcx.JtdsDataSource;
-import oracle.jdbc.OracleConnection;
 import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
@@ -18,10 +15,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * StatementCacheTest - Test Statement cache
@@ -118,7 +114,7 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
     @Parameterized.Parameters
     public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
         List<DataSourceProvider[]> providers = new ArrayList<>();
-        /*providers.add(new DataSourceProvider[]{
+        providers.add(new DataSourceProvider[]{
             new CachingOracleDataSourceProvider(1)
         });
         providers.add(new DataSourceProvider[]{
@@ -135,7 +131,7 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
         });
         providers.add(new DataSourceProvider[]{
                 new CachingPostgreSQLDataSourceProvider(0)
-        });*/
+        });
         MySQLDataSourceProvider mySQLCachingDataSourceProvider = new MySQLDataSourceProvider();
         mySQLCachingDataSourceProvider.setUseServerPrepStmts(false);
         mySQLCachingDataSourceProvider.setCachePrepStmts(true);

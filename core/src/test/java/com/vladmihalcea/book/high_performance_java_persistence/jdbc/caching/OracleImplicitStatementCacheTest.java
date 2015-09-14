@@ -1,28 +1,25 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.caching;
 
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
+import oracle.jdbc.OracleConnection;
 import oracle.jdbc.pool.OracleDataSource;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
- * StatementCacheTest - Test Statement cache
+ * OracleImplicitStatementCacheTest - Test Oracle implicit Statement cache
  *
  * @author Vlad Mihalcea
  */
-public class StatementCacheWithPoolableAPITest extends DataSourceProviderIntegrationTest {
+public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
@@ -30,43 +27,25 @@ public class StatementCacheWithPoolableAPITest extends DataSourceProviderIntegra
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public StatementCacheWithPoolableAPITest(DataSourceProvider dataSourceProvider) {
-        super(dataSourceProvider);
-    }
-
-    @Parameterized.Parameters
-    public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
-        List<DataSourceProvider[]> providers = new ArrayList<>();
-        providers.add(new DataSourceProvider[]{
-            new OracleDataSourceProvider() {
-                @Override
-                public DataSource dataSource() {
-                    OracleDataSource dataSource = (OracleDataSource) super.dataSource();
-                    try {
-                        Properties connectionProperties = dataSource.getConnectionProperties();
-                        if(connectionProperties == null) {
-                            connectionProperties = new Properties();
-                        }
-                        connectionProperties.put("oracle.jdbc.implicitStatementCacheSize", "5");
-                        dataSource.setConnectionProperties(connectionProperties);
-                    } catch (SQLException e) {
-                        fail(e.getMessage());
-                    }
-                    return dataSource;
-                }
-            }
-        });
-        /*providers.add(new DataSourceProvider[]{new JTDSDataSourceProvider() {
+    @Override
+    protected DataSourceProvider getDataSourceProvider() {
+        return new OracleDataSourceProvider() {
             @Override
             public DataSource dataSource() {
-                JtdsDataSource dataSource = (JtdsDataSource) super.dataSource();
-                dataSource.setMaxStatements(5);
+                OracleDataSource dataSource = (OracleDataSource) super.dataSource();
+                try {
+                    Properties connectionProperties = dataSource.getConnectionProperties();
+                    if(connectionProperties == null) {
+                        connectionProperties = new Properties();
+                    }
+                    connectionProperties.put("oracle.jdbc.implicitStatementCacheSize", "5");
+                    dataSource.setConnectionProperties(connectionProperties);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
                 return dataSource;
             }
-        }});*/
-        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
-        //providers.add(new DataSourceProvider[]{new MySQLDataSourceProvider()});
-        return providers;
+        };
     }
 
     @Override
@@ -124,7 +103,12 @@ public class StatementCacheWithPoolableAPITest extends DataSourceProviderIntegra
     private void selectWhenCaching(boolean caching) {
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            for (int i = 0; i < getStatementCount(); i++) {
+            OracleConnection oracleConnection = (OracleConnection) connection;
+            oracleConnection.setImplicitCachingEnabled(false);
+            assertFalse(oracleConnection.getImplicitCachingEnabled());
+            assertEquals(5, oracleConnection.getStatementCacheSize());
+
+            for (int i = 0; i < 1; i++) {
                 try (PreparedStatement statement = connection.prepareStatement(
                         "select p.title, pc.review " +
                                 "from post p left join postcomment pc on p.id = pc.post_id " +
@@ -132,7 +116,9 @@ public class StatementCacheWithPoolableAPITest extends DataSourceProviderIntegra
                                 "   select 1 from postcomment where version = ? and id > p.id " +
                                 ")"
                 )) {
-                    statement.setPoolable(caching);
+                    if (statement.isPoolable()) {
+                        statement.setPoolable(caching);
+                    }
                     statement.setInt(1, i);
                     statement.execute();
                 } catch (SQLException e) {
@@ -152,10 +138,6 @@ public class StatementCacheWithPoolableAPITest extends DataSourceProviderIntegra
 
     protected int getPostCommentCount() {
         return 5;
-    }
-
-    protected int getStatementCount() {
-        return 10 * 1000;
     }
 
     @Override

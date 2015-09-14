@@ -1,53 +1,36 @@
-package com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch;
+package com.vladmihalcea.book.high_performance_java_persistence.jdbc.caching;
 
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractOracleXEIntegrationTest;
 import oracle.jdbc.OracleConnection;
-import oracle.jdbc.pool.OracleDataSource;
+import oracle.jdbc.OraclePreparedStatement;
 import org.junit.Test;
 
-import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * OracleImplicitStatementCacheTest - Test Oracle implicit Statement cache
  *
  * @author Vlad Mihalcea
  */
-public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
+public class OracleExplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
     public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
 
+    public static final String SELECT_POST_REVIEWS =
+            "select p.title, pc.review " +
+            "from post p left join postcomment pc on p.id = pc.post_id " +
+            "where EXISTS ( " +
+            "   select 1 from postcomment where version = ? and id > p.id " +
+            ")";
+
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
-
-    @Override
-    protected DataSourceProvider getDataSourceProvider() {
-        return new OracleDataSourceProvider() {
-            @Override
-            public DataSource dataSource() {
-                OracleDataSource dataSource = (OracleDataSource) super.dataSource();
-                try {
-                    Properties connectionProperties = dataSource.getConnectionProperties();
-                    if(connectionProperties == null) {
-                        connectionProperties = new Properties();
-                    }
-                    connectionProperties.put("oracle.jdbc.implicitStatementCacheSize", "5");
-                    dataSource.setConnectionProperties(connectionProperties);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
-                return dataSource;
-            }
-        };
-    }
-
     @Override
     protected Class<?>[] entities() {
         return entityProvider.entities();
@@ -92,41 +75,27 @@ public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegratio
 
     @Test
     public void testStatementCaching() {
-        selectWhenCaching(true);
-    }
-
-    @Test
-    public void testStatementWithoutCaching() {
-        selectWhenCaching(false);
-    }
-
-    private void selectWhenCaching(boolean caching) {
-        long startNanos = System.nanoTime();
         doInConnection(connection -> {
             OracleConnection oracleConnection = (OracleConnection) connection;
-            assertTrue(oracleConnection.getImplicitCachingEnabled());
-            assertEquals(5, oracleConnection.getStatementCacheSize());
-
-            for (int i = 0; i < 100000; i++) {
-                try (PreparedStatement statement = connection.prepareStatement(
-                        "select p.title, pc.review " +
-                                "from post p left join postcomment pc on p.id = pc.post_id " +
-                                "where EXISTS ( " +
-                                "   select 1 from postcomment where version = ? and id > p.id " +
-                                ")"
-                )) {
-                    statement.setPoolable(caching);
-                    statement.setInt(1, i);
-                    statement.execute();
-                } catch (SQLException e) {
-                    fail(e.getMessage());
+            oracleConnection.setExplicitCachingEnabled(true);
+            oracleConnection.setStatementCacheSize(1);
+            PreparedStatement statement = oracleConnection.getStatementWithKey("post_reviews");
+            boolean cached = statement != null;
+            if(!cached) {
+                statement = connection.prepareStatement(SELECT_POST_REVIEWS);
+            }
+            try {
+                statement.setInt(1, 10);
+                statement.execute();
+            } catch (SQLException e) {
+                fail(e.getMessage());
+            } finally {
+                if (!cached) {
+                    ((OraclePreparedStatement)statement).closeWithKey("post_reviews");
                 }
             }
+            assertNotNull(oracleConnection.getStatementWithKey("post_reviews"));
         });
-        LOGGER.info("{} when caching Statements is {} took {} millis",
-                getClass().getSimpleName(),
-                caching,
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
     protected int getPostCount() {
