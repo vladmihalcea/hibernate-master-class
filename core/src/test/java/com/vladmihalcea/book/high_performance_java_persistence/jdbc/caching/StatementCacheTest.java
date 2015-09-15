@@ -196,11 +196,12 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
         doInConnection(connection -> {
             while (System.currentTimeMillis() < ttlMillis)
                 try (PreparedStatement statement = connection.prepareStatement(
-                        "select p.title, pc.review " +
-                                "from post p left join postcomment pc on p.id = pc.post_id " +
-                                "where EXISTS ( " +
-                                "   select 1 from postcomment where version = ? and id > p.id " +
-                                ")"
+                        "select p.title, pd.createdOn " +
+                        "from post p " +
+                        "left join PostDetails pd on p.id = pd.id " +
+                        "where EXISTS ( " +
+                        "   select 1 from postcomment where post_id > p.id and version = ?" +
+                        ")"
                 )) {
                     statement.setInt(1, counter.incrementAndGet());
                     statement.execute();
