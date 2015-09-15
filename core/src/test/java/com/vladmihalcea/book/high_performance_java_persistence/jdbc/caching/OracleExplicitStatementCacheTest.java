@@ -25,12 +25,15 @@ public class OracleExplicitStatementCacheTest extends AbstractOracleXEIntegratio
 
     public static final String SELECT_POST_REVIEWS =
             "select p.title, pc.review " +
-            "from post p left join postcomment pc on p.id = pc.post_id " +
-            "where EXISTS ( " +
-            "   select 1 from postcomment where version = ? and id > p.id " +
-            ")";
+                    "from post p left join postcomment pc on p.id = pc.post_id " +
+                    "where EXISTS ( " +
+                    "   select 1 from postcomment where version = ? and id > p.id " +
+                    ")";
+
+    public static final String SELECT_POST_REVIEWS_KEY = "post_reviews";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
+
     @Override
     protected Class<?>[] entities() {
         return entityProvider.entities();
@@ -76,25 +79,20 @@ public class OracleExplicitStatementCacheTest extends AbstractOracleXEIntegratio
     @Test
     public void testStatementCaching() {
         doInConnection(connection -> {
-            OracleConnection oracleConnection = (OracleConnection) connection;
-            oracleConnection.setExplicitCachingEnabled(true);
-            oracleConnection.setStatementCacheSize(1);
-            PreparedStatement statement = oracleConnection.getStatementWithKey("post_reviews");
-            boolean cached = statement != null;
-            if(!cached) {
-                statement = connection.prepareStatement(SELECT_POST_REVIEWS);
-            }
-            try {
-                statement.setInt(1, 10);
-                statement.execute();
-            } catch (SQLException e) {
-                fail(e.getMessage());
-            } finally {
-                if (!cached) {
-                    ((OraclePreparedStatement)statement).closeWithKey("post_reviews");
+            for (int i = 0; i < 5; i++) {
+                OracleConnection oracleConnection = (OracleConnection) connection;
+                oracleConnection.setExplicitCachingEnabled(true);
+                oracleConnection.setStatementCacheSize(1);
+                PreparedStatement statement = oracleConnection.getStatementWithKey(SELECT_POST_REVIEWS_KEY);
+                if (statement == null)
+                    statement = connection.prepareStatement(SELECT_POST_REVIEWS);
+                try {
+                    statement.setInt(1, 10);
+                    statement.execute();
+                } finally {
+                    ((OraclePreparedStatement) statement).closeWithKey(SELECT_POST_REVIEWS_KEY);
                 }
             }
-            assertNotNull(oracleConnection.getStatementWithKey("post_reviews"));
         });
     }
 
