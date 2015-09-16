@@ -24,7 +24,8 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public class StatementCacheTest extends DataSourceProviderIntegrationTest {
+public class StatementCachePoolableTest extends DataSourceProviderIntegrationTest {
+
     public static class CachingOracleDataSourceProvider extends OracleDataSourceProvider {
         private final int cacheSize;
 
@@ -106,7 +107,7 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public StatementCacheTest(DataSourceProvider dataSourceProvider) {
+    public StatementCachePoolableTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
@@ -117,31 +118,16 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
                 new CachingOracleDataSourceProvider(1)
         });
         providers.add(new DataSourceProvider[]{
-                new CachingOracleDataSourceProvider(0)
-        });
-        providers.add(new DataSourceProvider[]{
                 new CachingJTDSDataSourceProvider(1)
-        });
-        providers.add(new DataSourceProvider[]{
-                new CachingJTDSDataSourceProvider(0)
         });
         providers.add(new DataSourceProvider[]{
                 new CachingPostgreSQLDataSourceProvider(1)
         });
-        providers.add(new DataSourceProvider[]{
-                new CachingPostgreSQLDataSourceProvider(0)
-        });
         MySQLDataSourceProvider mySQLCachingDataSourceProvider = new MySQLDataSourceProvider();
-        mySQLCachingDataSourceProvider.setUseServerPrepStmts(false);
+        mySQLCachingDataSourceProvider.setUseServerPrepStmts(true);
         mySQLCachingDataSourceProvider.setCachePrepStmts(true);
         providers.add(new DataSourceProvider[]{
                 mySQLCachingDataSourceProvider
-        });
-        MySQLDataSourceProvider mySQLNoCachingDataSourceProvider = new MySQLDataSourceProvider();
-        mySQLNoCachingDataSourceProvider.setUseServerPrepStmts(false);
-        mySQLNoCachingDataSourceProvider.setCachePrepStmts(false);
-        providers.add(new DataSourceProvider[]{
-                mySQLNoCachingDataSourceProvider
         });
         return providers;
     }
@@ -190,10 +176,9 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
 
     @Test
     public void selectWhenCaching() {
-        long ttlMillis = System.currentTimeMillis() + getRunMillis();
         AtomicInteger counter = new AtomicInteger();
         doInConnection(connection -> {
-            while (System.currentTimeMillis() < ttlMillis)
+            for (int i = 0; i < 2; i++) {
                 try (PreparedStatement statement = connection.prepareStatement(
                         "select p.title, pd.createdOn " +
                                 "from post p " +
@@ -202,11 +187,13 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
                                 "   select 1 from postcomment where post_id > p.id and version = ?" +
                                 ")"
                 )) {
+                    statement.setPoolable(false);
                     statement.setInt(1, counter.incrementAndGet());
                     statement.execute();
                 } catch (SQLException e) {
                     fail(e.getMessage());
                 }
+            }
         });
         LOGGER.info("When using {}, throughput is {} statements",
                 getDataSourceProvider(),
@@ -219,10 +206,6 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
 
     protected int getPostCommentCount() {
         return 5;
-    }
-
-    protected int getRunMillis() {
-        return 60 * 1000;
     }
 
     @Override
