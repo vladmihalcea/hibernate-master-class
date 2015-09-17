@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,7 +47,8 @@ public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
     }
 
     private static Integer[] fetchSizes = new Integer[] {
-        null, 1, 100, 200, 500, 1000, 2000, 5000, 10000
+        //null, 1, 10, 100, 1000, 10000
+        1, 10, 100, 1000, 10000
     };
 
     private static DataSourceProvider[] dataSourceProviders = new DataSourceProvider[]{
@@ -96,6 +98,10 @@ public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
                     statement.setFetchSize(fetchSize);
                 }
                 statement.execute();
+                ResultSet resultSet = statement.getResultSet();
+                while (resultSet.next()) {
+                    resultSet.getLong(1);
+                }
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
