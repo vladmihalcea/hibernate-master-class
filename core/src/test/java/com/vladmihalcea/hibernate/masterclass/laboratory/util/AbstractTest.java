@@ -199,9 +199,9 @@ public abstract class AbstractTest {
 
         private boolean rewriteBatchedStatements = true;
 
-        private boolean cachePrepStmts = true;
+        private boolean cachePrepStmts = false;
 
-        private boolean useServerPrepStmts = true;
+        private boolean useServerPrepStmts = false;
 
         public boolean isRewriteBatchedStatements() {
             return rewriteBatchedStatements;

@@ -83,7 +83,11 @@ public class BatchEntityProvider implements EntityProvider {
         @Id
         private Long id;
 
+        @Column(name = "created_on")
         private Date createdOn;
+
+        @Version
+        private int version;
 
         public PostDetails() {
             createdOn = new Date();
@@ -104,6 +108,7 @@ public class BatchEntityProvider implements EntityProvider {
     }
 
     @Entity(name = "PostComment")
+    @Table(name = "PostComment", indexes = @Index(columnList = "post_id", name = "POST_ID_FK_IDX"))
     public static class Comment {
 
         @Id

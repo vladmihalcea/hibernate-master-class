@@ -195,7 +195,7 @@ public class StatementCacheTest extends DataSourceProviderIntegrationTest {
         doInConnection(connection -> {
             while (System.currentTimeMillis() < ttlMillis)
                 try (PreparedStatement statement = connection.prepareStatement(
-                        "select p.title, pd.createdOn " +
+                        "select p.title, pd.created_on " +
                                 "from post p " +
                                 "left join PostDetails pd on p.id = pd.id " +
                                 "where EXISTS ( " +

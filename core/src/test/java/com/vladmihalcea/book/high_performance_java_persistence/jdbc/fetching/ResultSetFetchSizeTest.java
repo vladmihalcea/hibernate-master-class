@@ -16,11 +16,11 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.fail;
 
 /**
- * StatementFetchSizeTest - Test Statement fetch size
+ * ResultSetFetchSizeTest - Test result set fetch size
  *
  * @author Vlad Mihalcea
  */
-public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
+public class ResultSetFetchSizeTest extends DataSourceProviderIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
@@ -28,7 +28,7 @@ public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
 
     private final Integer fetchSize;
 
-    public StatementFetchSizeTest(DataSourceProvider dataSourceProvider, Integer fetchSize) {
+    public ResultSetFetchSizeTest(DataSourceProvider dataSourceProvider, Integer fetchSize) {
         super(dataSourceProvider);
         this.fetchSize = fetchSize;
     }
@@ -47,8 +47,8 @@ public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
     }
 
     private static Integer[] fetchSizes = new Integer[] {
-        //null, 1, 10, 100, 1000, 10000
-        1, 10, 100, 1000, 10000
+            //null, 1, 10, 100, 1000, 10000
+            1, 10, 100, 1000, 10000
     };
 
     private static DataSourceProvider[] dataSourceProviders = new DataSourceProvider[]{
@@ -79,8 +79,12 @@ public class StatementFetchSizeTest extends DataSourceProviderIntegrationTest {
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
-                    postStatement.executeUpdate();
+                    postStatement.addBatch();
+                    if(i % 100 == 0) {
+                        postStatement.executeBatch();
+                    }
                 }
+                postStatement.executeBatch();
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
