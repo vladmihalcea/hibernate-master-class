@@ -116,7 +116,6 @@ public class ResultSetColumnSizeTest extends DataSourceProviderIntegrationTest {
         });
     }
 
-
     @Test
     public void testSelectAll() {
         testInternal(SELECT_ALL);

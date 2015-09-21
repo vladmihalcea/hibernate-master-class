@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.fail;
@@ -22,6 +23,16 @@ import static org.junit.Assert.fail;
 public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+
+    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+
+    public static final String INSERT_POST_DETAILS= "insert into PostDetails (id, created_on, version) values (?, ?, ?)";
+
+    public static final String SELECT_ALL =
+            "select *  " +
+                    "from PostComment pc " +
+                    "inner join Post p on p.id = pc.post_id " +
+                    "inner join PostDetails pd on p.id = pd.id ";
 
     private MetricRegistry metricRegistry = new MetricRegistry();
 
@@ -47,14 +58,49 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
     public void init() {
         super.init();
         doInConnection(connection -> {
-            LOGGER.info("{} supports TYPE_FORWARD_ONLY {}", getDataSourceProvider().database(), connection.getMetaData().supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY));
-            LOGGER.info("{} supports TYPE_SCROLL_INSENSITIVE {}", getDataSourceProvider().database(), connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE));
-            LOGGER.info("{} supports TYPE_SCROLL_SENSITIVE {}", getDataSourceProvider().database(), connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_SENSITIVE));
+            LOGGER.info("{} supports TYPE_FORWARD_ONLY {}, CONCUR_READ_ONLY {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+            );
+
+            LOGGER.info("{} supports TYPE_FORWARD_ONLY {}, CONCUR_UPDATABLE {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            );
+
+            LOGGER.info("{} supports TYPE_SCROLL_INSENSITIVE {}, CONCUR_READ_ONLY {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)
+            );
+
+            LOGGER.info("{} supports TYPE_SCROLL_INSENSITIVE {}, CONCUR_UPDATABLE {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)
+            );
+
+            LOGGER.info("{} supports TYPE_SCROLL_SENSITIVE {}, CONCUR_READ_ONLY {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_SENSITIVE),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)
+            );
+
+            LOGGER.info("{} supports TYPE_SCROLL_SENSITIVE {}, CONCUR_UPDATABLE {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetType(ResultSet.TYPE_SCROLL_SENSITIVE),
+                    connection.getMetaData().supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)
+            );
 
             try (
                     PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
+                    PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT);
+                    PreparedStatement postDetailsStatement = connection.prepareStatement(INSERT_POST_DETAILS);
             ) {
                 int postCount = getPostCount();
+                int postCommentCount = getPostCommentCount();
 
                 int index;
 
@@ -64,11 +110,35 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
                     postStatement.addBatch();
+
+                    index = 0;
+                    postDetailsStatement.setInt(++index, i);
+                    postDetailsStatement.setTimestamp(++index, new Timestamp(System.currentTimeMillis()));
+                    postDetailsStatement.setInt(++index, 0);
+                    postDetailsStatement.addBatch();
+
                     if (i % 100 == 0) {
                         postStatement.executeBatch();
+                        postDetailsStatement.executeBatch();
                     }
                 }
                 postStatement.executeBatch();
+                postDetailsStatement.executeBatch();
+
+                for (int i = 0; i < postCount; i++) {
+                    for (int j = 0; j < postCommentCount; j++) {
+                        index = 0;
+                        postCommentStatement.setLong(++index, i);
+                        postCommentStatement.setString(++index, String.format("Post comment %1$d", j));
+                        postCommentStatement.setInt(++index, (int) (Math.random() * 1000));
+                        postCommentStatement.setLong(++index, (postCommentCount * i) + j);
+                        postCommentStatement.addBatch();
+                        if (j % 100 == 0) {
+                            postCommentStatement.executeBatch();
+                        }
+                    }
+                }
+                postCommentStatement.executeBatch();
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -86,24 +156,24 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
     }
 
     public void testInternal(int resultSetType, int resultSetConcurrency) {
-        long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "select * " +
-                            "from Post p " +
-                            "inner join PostComment pc on pc.post_id = p.id "
-            )) {
-                statement.execute();
-                ResultSet resultSet = statement.getResultSet();
-                while (resultSet.next()) {
-                    Object[] values = new Object[resultSet.getMetaData().getColumnCount()];
-                    for (int j = 0; j < values.length; j++) {
-                        values[j] = resultSet.getObject(j + 1);
+            for (int i = 0; i < runCount(); i++) {
+                long startNanos = System.nanoTime();
+                try (PreparedStatement statement = connection.prepareStatement(
+                        SELECT_ALL
+                        , resultSetType, resultSetConcurrency)) {
+                    statement.execute();
+                    ResultSet resultSet = statement.getResultSet();
+                    while (resultSet.next()) {
+                        Object[] values = new Object[resultSet.getMetaData().getColumnCount()];
+                        for (int j = 0; j < values.length; j++) {
+                            values[j] = resultSet.getObject(j + 1);
+                        }
                     }
+                    timer.update(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
                 }
-                timer.update(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
-            } catch (SQLException e) {
-                fail(e.getMessage());
             }
         });
         LOGGER.info("{} Result Set Type {} and Concurrency {}",
@@ -113,8 +183,16 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
         logReporter.report();
     }
 
+    private int runCount() {
+        return 1;
+    }
+
     protected int getPostCount() {
         return 100;
+    }
+
+    protected int getPostCommentCount() {
+        return 10;
     }
 
     @Override
