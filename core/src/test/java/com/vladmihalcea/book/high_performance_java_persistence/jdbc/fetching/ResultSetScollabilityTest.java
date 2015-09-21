@@ -15,11 +15,11 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.fail;
 
 /**
- * ResultSetCursorTest - Test result set cursor
+ * ResultSetScollabilityTest - Test result set scrollability
  *
  * @author Vlad Mihalcea
  */
-public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
+public class ResultSetScollabilityTest extends DataSourceProviderIntegrationTest {
 
     public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
 
@@ -34,7 +34,7 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public ResultSetCursorTest(DataSourceProvider dataSourceProvider) {
+    public ResultSetScollabilityTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
@@ -95,14 +95,15 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
                 statement.execute();
                 ResultSet resultSet = statement.getResultSet();
                 Object[] values = new Object[resultSet.getMetaData().getColumnCount()];
-                while (resultSet.next()) {
+                for (int i = 0; i < getPostCount(); i++) {
+                    resultSet.absolute(i + 1);
                     for (int j = 0; j < values.length; j++) {
                         values[j] = resultSet.getObject(j + 1);
                     }
                 }
                 timer.update(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
             } catch (SQLException e) {
-                fail(e.getMessage());
+                LOGGER.error("Failed {}", e);
             }
         });
         LOGGER.info("{} Result Set Type {} and Concurrency {}",
