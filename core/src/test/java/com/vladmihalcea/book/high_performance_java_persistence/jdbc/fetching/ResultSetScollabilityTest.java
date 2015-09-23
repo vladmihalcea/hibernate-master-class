@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
  */
 public class ResultSetScollabilityTest extends DataSourceProviderIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
     private MetricRegistry metricRegistry = new MetricRegistry();
 

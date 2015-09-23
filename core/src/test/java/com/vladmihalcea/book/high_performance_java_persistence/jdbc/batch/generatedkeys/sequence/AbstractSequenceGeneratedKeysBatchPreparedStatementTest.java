@@ -55,7 +55,7 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
         long startNanos = System.nanoTime();
 
         try(PreparedStatement postStatement = connection.prepareStatement(
-                "insert into Post (id, title, version) " +
+                "insert into post (id, title, version) " +
                 "values (?, ?, ?)")) {
             int postCount = getPostCount();
 

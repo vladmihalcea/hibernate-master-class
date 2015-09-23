@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
  */
 public class ResultSetFetchSizeTest extends DataSourceProviderIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 

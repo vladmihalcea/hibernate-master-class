@@ -21,9 +21,9 @@ import static org.junit.Assert.*;
  */
 public class OracleImplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 

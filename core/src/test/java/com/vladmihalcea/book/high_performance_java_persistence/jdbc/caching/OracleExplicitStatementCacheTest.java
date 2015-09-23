@@ -19,9 +19,9 @@ import static org.junit.Assert.fail;
  */
 public class OracleExplicitStatementCacheTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     public static final String SELECT_POST_REVIEWS =
             "select p.title, pc.review " +

@@ -101,9 +101,9 @@ public class StatementCachePoolableTest extends DataSourceProviderIntegrationTes
         }
     }
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
@@ -182,9 +182,9 @@ public class StatementCachePoolableTest extends DataSourceProviderIntegrationTes
                 try (PreparedStatement statement = connection.prepareStatement(
                         "select p.title, pd.created_on " +
                                 "from post p " +
-                                "left join PostDetails pd on p.id = pd.id " +
+                                "left join post_details pd on p.id = pd.id " +
                                 "where EXISTS ( " +
-                                "   select 1 from postcomment where post_id > p.id and version = ?" +
+                                "   select 1 from post_comment where post_id > p.id and version = ?" +
                                 ")"
                 )) {
                     statement.setPoolable(false);

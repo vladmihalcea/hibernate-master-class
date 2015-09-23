@@ -24,6 +24,7 @@ public class BatchEntityProvider implements EntityProvider {
     }
 
     @Entity(name = "Post")
+    @Table(name = "post")
     public static class Post {
 
         @Id
@@ -78,6 +79,7 @@ public class BatchEntityProvider implements EntityProvider {
     }
 
     @Entity(name = "PostDetails")
+    @Table(name = "post_details")
     public static class PostDetails {
 
         @Id
@@ -108,7 +110,7 @@ public class BatchEntityProvider implements EntityProvider {
     }
 
     @Entity(name = "PostComment")
-    @Table(name = "PostComment", indexes = @Index(columnList = "post_id", name = "POST_ID_FK_IDX"))
+    @Table(name = "post_comment", indexes = @Index(columnList = "post_id", name = "POST_ID_FK_IDX"))
     public static class Comment {
 
         @Id

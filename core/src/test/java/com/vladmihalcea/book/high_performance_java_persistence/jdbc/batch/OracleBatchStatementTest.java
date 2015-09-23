@@ -20,9 +20,9 @@ import static org.junit.Assert.fail;
  */
 public class OracleBatchStatementTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values ('Post no. %1$d', 0, %1$d)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (%1$d, 'Post comment %2$d', 0, %2$d)";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 

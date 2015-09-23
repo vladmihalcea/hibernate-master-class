@@ -23,9 +23,9 @@ import static org.junit.Assert.fail;
 @RunWith(Parameterized.class)
 public class OracleDefaultExecuteBatchPreparedStatementTest extends AbstractOracleXEIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     private final int defaultExecuteBatch;
 

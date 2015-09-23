@@ -30,14 +30,14 @@ public class SimpleBatchTest extends AbstractPostgreSQLIntegrationTest {
             try (Statement statement = connection.createStatement()) {
 
                 statement.addBatch(
-                    "insert into Post (title, version, id) " +
+                    "insert into post (title, version, id) " +
                     "values ('Post no. 1', 0, 1)");
 
                 statement.addBatch(
-                    "insert into PostComment (post_id, review, version, id) " +
+                    "insert into post_comment (post_id, review, version, id) " +
                     "values (1, 'Post comment 1.1', 0, 1)");
                 statement.addBatch(
-                    "insert into PostComment (post_id, review, version, id) " +
+                    "insert into post_comment (post_id, review, version, id) " +
                     "values (1, 'Post comment 1.2', 0, 2)");
 
                 int[] updateCounts = statement.executeBatch();
@@ -52,7 +52,7 @@ public class SimpleBatchTest extends AbstractPostgreSQLIntegrationTest {
         LOGGER.info("Test Statement batch insert");
         doInConnection(connection -> {
             PreparedStatement postStatement = connection.prepareStatement(
-                    "insert into Post (title, version, id) " +
+                    "insert into post (title, version, id) " +
                     "values (?, ?, ?)");
 
             postStatement.setString(1, String.format("Post no. %1$d", 1));

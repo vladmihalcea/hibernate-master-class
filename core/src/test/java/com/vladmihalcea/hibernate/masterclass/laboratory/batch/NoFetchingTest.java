@@ -135,7 +135,7 @@ public class NoFetchingTest
         }
     }
 
-    @Entity(name = "PostComment")
+    @Entity(name = "post_comment")
     public static class Comment {
 
         @Id

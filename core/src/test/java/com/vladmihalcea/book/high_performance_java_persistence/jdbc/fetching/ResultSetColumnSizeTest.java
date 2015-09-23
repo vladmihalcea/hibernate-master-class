@@ -22,23 +22,23 @@ import static org.junit.Assert.fail;
  */
 public class ResultSetColumnSizeTest extends DataSourceProviderIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
-    public static final String INSERT_POST_DETAILS= "insert into PostDetails (id, created_on, version) values (?, ?, ?)";
+    public static final String INSERT_POST_DETAILS= "insert into post_details (id, created_on, version) values (?, ?, ?)";
 
     public static final String SELECT_ALL =
             "select *  " +
-                    "from PostComment pc " +
-                    "inner join Post p on p.id = pc.post_id " +
-                    "inner join PostDetails pd on p.id = pd.id ";
+                    "from post_comment pc " +
+                    "inner join post p on p.id = pc.post_id " +
+                    "inner join post_details pd on p.id = pd.id ";
 
     public static final String SELECT_ID =
             "select pc.id  " +
-                    "from PostComment pc " +
-                    "inner join Post p on p.id = pc.post_id " +
-                    "inner join PostDetails pd on p.id = pd.id ";
+                    "from post_comment pc " +
+                    "inner join post p on p.id = pc.post_id " +
+                    "inner join post_details pd on p.id = pd.id ";
 
 
     private MetricRegistry metricRegistry = new MetricRegistry();
@@ -65,11 +65,34 @@ public class ResultSetColumnSizeTest extends DataSourceProviderIntegrationTest {
     public void init() {
         super.init();
         doInConnection(connection -> {
+            LOGGER.info("{} supports CLOSE_CURSORS_AT_COMMIT {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT)
+            );
+
+            LOGGER.info("{} supports HOLD_CURSORS_OVER_COMMIT {}",
+                    getDataSourceProvider().database(),
+                    connection.getMetaData().supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT)
+            );
+
             try (
                     PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
                     PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT);
                     PreparedStatement postDetailsStatement = connection.prepareStatement(INSERT_POST_DETAILS);
             ) {
+
+                if (postStatement.getResultSetHoldability() == ResultSet.CLOSE_CURSORS_AT_COMMIT) {
+                    LOGGER.info("{} default holdability CLOSE_CURSORS_AT_COMMIT",
+                            getDataSourceProvider().database()
+                    );
+                } else if (postStatement.getResultSetHoldability() == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
+                    LOGGER.info("{} default holdability HOLD_CURSORS_OVER_COMMIT",
+                            getDataSourceProvider().database()
+                    );
+                } else {
+                    fail();
+                }
+
                 int postCount = getPostCount();
                 int postCommentCount = getPostCommentCount();
 

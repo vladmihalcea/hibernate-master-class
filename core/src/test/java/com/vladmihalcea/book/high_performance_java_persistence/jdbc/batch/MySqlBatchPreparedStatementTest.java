@@ -67,8 +67,8 @@ public class MySqlBatchPreparedStatementTest extends AbstractMySQLIntegrationTes
             AtomicInteger postStatementCount = new AtomicInteger();
             AtomicInteger postCommentStatementCount = new AtomicInteger();
 
-            try (PreparedStatement postStatement = connection.prepareStatement("insert into Post (title, version, id) values (?, ?, ?)");
-                 PreparedStatement postCommentStatement = connection.prepareStatement("insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)");
+            try (PreparedStatement postStatement = connection.prepareStatement("insert into post (title, version, id) values (?, ?, ?)");
+                 PreparedStatement postCommentStatement = connection.prepareStatement("insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)");
             ) {
                 int postCount = getPostCount();
                 int postCommentCount = getPostCommentCount();

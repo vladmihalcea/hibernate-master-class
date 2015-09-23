@@ -22,17 +22,17 @@ import static org.junit.Assert.fail;
  */
 public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
 
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
-    public static final String INSERT_POST_DETAILS= "insert into PostDetails (id, created_on, version) values (?, ?, ?)";
+    public static final String INSERT_POST_DETAILS= "insert into post_details (id, created_on, version) values (?, ?, ?)";
 
     public static final String SELECT_ALL =
             "select *  " +
-                    "from PostComment pc " +
-                    "inner join Post p on p.id = pc.post_id " +
-                    "inner join PostDetails pd on p.id = pd.id ";
+                    "from post_comment pc " +
+                    "inner join post p on p.id = pc.post_id " +
+                    "inner join post_details pd on p.id = pd.id ";
 
     private MetricRegistry metricRegistry = new MetricRegistry();
 

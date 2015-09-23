@@ -21,13 +21,13 @@ import static org.junit.Assert.fail;
  * @author Vlad Mihalcea
  */
 public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
-    public static final String INSERT_POST = "insert into Post (title, version, id) values (?, ?, ?)";
+    public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into PostComment (post_id, review, version, id) values (?, ?, ?, ?)";
+    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     public static final String SELECT_POST_COMMENT =
             "select pc.id as pc_id, p.id as p_id  " +
-            "from PostComment pc " +
+            "from post_comment pc " +
             "inner join Post p on p.id = pc.post_id ";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();

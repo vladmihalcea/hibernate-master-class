@@ -21,7 +21,7 @@ public class AutoIncrementBatchEntityProvider implements EntityProvider {
         };
     }
 
-    @Entity(name = "Post")
+    @Entity(name = "post")
     public static class Post {
 
         @Id
