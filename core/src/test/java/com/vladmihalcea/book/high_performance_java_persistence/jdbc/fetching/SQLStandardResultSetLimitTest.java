@@ -2,9 +2,7 @@ package com.vladmihalcea.book.high_performance_java_persistence.jdbc.fetching;
 
 import com.vladmihalcea.book.high_performance_java_persistence.jdbc.batch.providers.BatchEntityProvider;
 import com.vladmihalcea.hibernate.masterclass.laboratory.util.DataSourceProviderIntegrationTest;
-import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.engine.spi.RowSelection;
-import org.hibernate.internal.SessionFactoryImpl;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
@@ -36,6 +34,14 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         "ORDER BY pc.id " +
         "OFFSET ? ROWS " +
         "FETCH FIRST (?) ROWS ONLY ";
+
+    public static final String SELECT_POST_COMMENT_WITH_NO_FIX =
+            "SELECT pc.id AS pc_id, p.id AS p_id  " +
+                    "FROM post_comment pc " +
+                    "INNER JOIN post p ON p.id = pc.post_id " +
+                    "ORDER BY pc.id " +
+                    "OFFSET ? ROWS " +
+                    "FETCH FIRST ? ROWS ONLY ";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
@@ -107,18 +113,15 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         rowSelection.setMaxRows(getMaxRows());
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST_COMMENT)
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST_COMMENT);
+                 PreparedStatement noFixStatement = connection.prepareStatement(SELECT_POST_COMMENT_WITH_NO_FIX);
             ) {
-                statement.setInt(1, 0);
-                statement.setInt(2, getMaxRows());
-                statement.execute();
-                int count = 0;
-                ResultSet resultSet = statement.getResultSet();
-                while (resultSet.next()) {
-                    resultSet.getLong(1);
-                    count++;
+                pocessResultSet(statement);
+                try {
+                    pocessResultSet(noFixStatement);
+                } catch (SQLException e) {
+                    LOGGER.error("Possible bug:", e);
                 }
-                assertEquals(getMaxRows(), count);
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -127,6 +130,19 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         LOGGER.info("{} Result Set with limit took {} millis",
                 getDataSourceProvider().database(),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+    }
+
+    protected void pocessResultSet(PreparedStatement statement) throws SQLException {
+        statement.setInt(1, 0);
+        statement.setInt(2, getMaxRows());
+        statement.execute();
+        int count = 0;
+        ResultSet resultSet = statement.getResultSet();
+        while (resultSet.next()) {
+            resultSet.getLong(1);
+            count++;
+        }
+        assertEquals(getMaxRows(), count);
     }
 
     protected int getPostCount() {
