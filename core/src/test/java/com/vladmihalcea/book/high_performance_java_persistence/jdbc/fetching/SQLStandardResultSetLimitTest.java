@@ -6,10 +6,14 @@ import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.engine.spi.RowSelection;
 import org.hibernate.internal.SessionFactoryImpl;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -20,7 +24,7 @@ import static org.junit.Assert.fail;
  *
  * @author Vlad Mihalcea
  */
-public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
+public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegrationTest {
     public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
     public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
@@ -28,12 +32,23 @@ public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
     public static final String SELECT_POST_COMMENT =
         "SELECT pc.id AS pc_id, p.id AS p_id  " +
         "FROM post_comment pc " +
-        "INNER JOIN post p ON p.id = pc.post_id ";
+        "INNER JOIN post p ON p.id = pc.post_id " +
+        "ORDER BY pc.id " +
+        "OFFSET ? ROWS " +
+        "FETCH FIRST (?) ROWS ONLY ";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public ResultSetLimitTest(DataSourceProvider dataSourceProvider) {
+    public SQLStandardResultSetLimitTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
+    }
+
+    @Parameterized.Parameters
+    public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
+        List<DataSourceProvider[]> providers = new ArrayList<>();
+        providers.add(new DataSourceProvider[]{new SQLServerDataSourceProvider()});
+        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
+        return providers;
     }
 
     @Override
@@ -87,42 +102,15 @@ public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
     }
 
     @Test
-    public void testNoLimit() {
-        long startNanos = System.nanoTime();
-        doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    SELECT_POST_COMMENT
-            )) {
-                statement.execute();
-                ResultSet resultSet = statement.getResultSet();
-                int count = 0;
-                while (resultSet.next()) {
-                    resultSet.getLong(1);
-                    count++;
-                }
-                assertEquals(getPostCount() * getPostCommentCount(), count);
-            } catch (SQLException e) {
-                fail(e.getMessage());
-            }
-
-        });
-        LOGGER.info("{} Result Set without limit took {} millis",
-                getDataSourceProvider().database(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
-    }
-
-    @Test
     public void testLimit() {
         RowSelection rowSelection = new RowSelection();
         rowSelection.setMaxRows(getMaxRows());
-        LimitHandler limitHandler = ((SessionFactoryImpl) getSessionFactory()).getDialect().buildLimitHandler(SELECT_POST_COMMENT, rowSelection);
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    limitHandler.getProcessedSql()
-            )) {
-                LOGGER.info(limitHandler.getProcessedSql());
-                statement.setInt(1, getMaxRows());
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST_COMMENT)
+            ) {
+                statement.setInt(1, 0);
+                statement.setInt(2, getMaxRows());
                 statement.execute();
                 int count = 0;
                 ResultSet resultSet = statement.getResultSet();
@@ -141,34 +129,8 @@ public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
-    @Test
-    public void testMaxSize() {
-        long startNanos = System.nanoTime();
-        doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(
-                    SELECT_POST_COMMENT
-            )) {
-                statement.setMaxRows(getMaxRows());
-                statement.execute();
-                ResultSet resultSet = statement.getResultSet();
-                int count = 0;
-                while (resultSet.next()) {
-                    resultSet.getLong(1);
-                    count++;
-                }
-                assertEquals(getMaxRows(), count);
-            } catch (SQLException e) {
-                fail(e.getMessage());
-            }
-
-        });
-        LOGGER.info("{} Result Set maxSize took {} millis",
-                getDataSourceProvider().database(),
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
-    }
-
     protected int getPostCount() {
-        return 100000;
+        return 100;
     }
 
     protected int getPostCommentCount() {
