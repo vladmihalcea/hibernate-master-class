@@ -18,42 +18,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * SQLStandardResultSetLimitTest - Test limiting result set vs fetching and discarding rows
+ * OracleResultSetLimitTest - Test limiting result set vs fetching and discarding rows
  *
  * @author Vlad Mihalcea
  */
-public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegrationTest {
+public class OracleResultSetLimitTest extends DataSourceProviderIntegrationTest {
     public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
-    public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
-
-    public static final String SELECT_POST_COMMENT =
-        "SELECT pc.id AS pc_id, p.id AS p_id  " +
-        "FROM post_comment pc " +
-        "INNER JOIN post p ON p.id = pc.post_id " +
-        "ORDER BY pc_id, p_id " +
-        "OFFSET ? ROWS " +
-        "FETCH FIRST (?) ROWS ONLY ";
-
-    public static final String SELECT_POST_COMMENT_WITH_NO_FIX =
-            "SELECT pc.id AS pc_id, p.id AS p_id  " +
-                    "FROM post_comment pc " +
-                    "INNER JOIN post p ON p.id = pc.post_id " +
-                    "ORDER BY pc_id, p_id " +
-                    "OFFSET ? ROWS " +
-                    "FETCH FIRST ? ROWS ONLY ";
+    public static final String SELECT_POST =
+        "SELECT p.id AS p_id  " +
+        "FROM post p ";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public SQLStandardResultSetLimitTest(DataSourceProvider dataSourceProvider) {
+    public OracleResultSetLimitTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
     @Parameterized.Parameters
     public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
         List<DataSourceProvider[]> providers = new ArrayList<>();
-        providers.add(new DataSourceProvider[]{new SQLServerDataSourceProvider()});
-        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
+        providers.add(new DataSourceProvider[]{new OracleDataSourceProvider()});
         return providers;
     }
 
@@ -68,10 +53,8 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         doInConnection(connection -> {
             try (
                     PreparedStatement postStatement = connection.prepareStatement(INSERT_POST);
-                    PreparedStatement postCommentStatement = connection.prepareStatement(INSERT_POST_COMMENT);
             ) {
                 int postCount = getPostCount();
-                int postCommentCount = getPostCommentCount();
 
                 int index;
 
@@ -86,21 +69,6 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
                     }
                 }
                 postStatement.executeBatch();
-
-                for (int i = 0; i < postCount; i++) {
-                    for (int j = 0; j < postCommentCount; j++) {
-                        index = 0;
-                        postCommentStatement.setLong(++index, i);
-                        postCommentStatement.setString(++index, String.format("Post comment %1$d", j));
-                        postCommentStatement.setInt(++index, (int) (Math.random() * 1000));
-                        postCommentStatement.setLong(++index, (postCommentCount * i) + j);
-                        postCommentStatement.addBatch();
-                        if(j % 100 == 0) {
-                            postCommentStatement.executeBatch();
-                        }
-                    }
-                }
-                postCommentStatement.executeBatch();
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -113,15 +81,10 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         rowSelection.setMaxRows(getMaxRows());
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST_COMMENT);
-                 PreparedStatement noFixStatement = connection.prepareStatement(SELECT_POST_COMMENT_WITH_NO_FIX);
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST)
             ) {
-                pocessResultSet(statement);
-                try {
-                    pocessResultSet(noFixStatement);
-                } catch (SQLException e) {
-                    LOGGER.error("Possible bug:", e);
-                }
+                statement.setMaxRows(getMaxRows());
+                assertEquals(getMaxRows(), processResultSet(statement));
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -132,9 +95,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
-    protected void pocessResultSet(PreparedStatement statement) throws SQLException {
-        statement.setInt(1, 0);
-        statement.setInt(2, getMaxRows());
+    protected int processResultSet(PreparedStatement statement) throws SQLException {
         statement.execute();
         int count = 0;
         ResultSet resultSet = statement.getResultSet();
@@ -142,7 +103,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
             resultSet.getLong(1);
             count++;
         }
-        assertEquals(getMaxRows(), count);
+        return count;
     }
 
     protected int getPostCount() {
@@ -154,7 +115,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
     }
 
     protected int getMaxRows() {
-        return 100;
+        return 5;
     }
 
 

@@ -18,34 +18,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * SQLStandardResultSetLimitTest - Test limiting result set vs fetching and discarding rows
+ * SQLServerResultSetLimitTest - Test limiting result set vs fetching and discarding rows
  *
  * @author Vlad Mihalcea
  */
-public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegrationTest {
+public class SQLServerResultSetLimitTest extends DataSourceProviderIntegrationTest {
     public static final String INSERT_POST = "insert into post (title, version, id) values (?, ?, ?)";
 
     public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
-    public static final String SELECT_POST_COMMENT =
+    public static final String SELECT_POST_COMMENT_1 =
         "SELECT pc.id AS pc_id, p.id AS p_id  " +
         "FROM post_comment pc " +
-        "INNER JOIN post p ON p.id = pc.post_id " +
-        "ORDER BY pc_id, p_id " +
-        "OFFSET ? ROWS " +
-        "FETCH FIRST (?) ROWS ONLY ";
+        "INNER JOIN post p ON p.id = pc.post_id ";
 
-    public static final String SELECT_POST_COMMENT_WITH_NO_FIX =
-            "SELECT pc.id AS pc_id, p.id AS p_id  " +
-                    "FROM post_comment pc " +
-                    "INNER JOIN post p ON p.id = pc.post_id " +
-                    "ORDER BY pc_id, p_id " +
-                    "OFFSET ? ROWS " +
-                    "FETCH FIRST ? ROWS ONLY ";
+    public static final String SELECT_POST_COMMENT_2 =
+        "SELECT *  " +
+        "FROM post_comment pc ";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 
-    public SQLStandardResultSetLimitTest(DataSourceProvider dataSourceProvider) {
+    public SQLServerResultSetLimitTest(DataSourceProvider dataSourceProvider) {
         super(dataSourceProvider);
     }
 
@@ -53,7 +46,6 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
     public static Collection<DataSourceProvider[]> rdbmsDataSourceProvider() {
         List<DataSourceProvider[]> providers = new ArrayList<>();
         providers.add(new DataSourceProvider[]{new SQLServerDataSourceProvider()});
-        providers.add(new DataSourceProvider[]{new PostgreSQLDataSourceProvider()});
         return providers;
     }
 
@@ -113,15 +105,14 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
         rowSelection.setMaxRows(getMaxRows());
         long startNanos = System.nanoTime();
         doInConnection(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(SELECT_POST_COMMENT);
-                 PreparedStatement noFixStatement = connection.prepareStatement(SELECT_POST_COMMENT_WITH_NO_FIX);
+            try (PreparedStatement statement1 = connection.prepareStatement(SELECT_POST_COMMENT_1);
+                 PreparedStatement statement11 = connection.prepareStatement(SELECT_POST_COMMENT_1);
+                 PreparedStatement statement2 = connection.prepareStatement(SELECT_POST_COMMENT_2);
             ) {
-                pocessResultSet(statement);
-                try {
-                    pocessResultSet(noFixStatement);
-                } catch (SQLException e) {
-                    LOGGER.error("Possible bug:", e);
-                }
+                statement1.setMaxRows(getMaxRows());
+                assertEquals(getMaxRows(), processResultSet(statement1));
+                assertEquals(getPostCommentCount() * getPostCount(), processResultSet(statement11));
+                assertEquals(getPostCommentCount() * getPostCount(), processResultSet(statement2));
             } catch (SQLException e) {
                 fail(e.getMessage());
             }
@@ -132,9 +123,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
-    protected void pocessResultSet(PreparedStatement statement) throws SQLException {
-        statement.setInt(1, 0);
-        statement.setInt(2, getMaxRows());
+    protected int processResultSet(PreparedStatement statement) throws SQLException {
         statement.execute();
         int count = 0;
         ResultSet resultSet = statement.getResultSet();
@@ -142,7 +131,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
             resultSet.getLong(1);
             count++;
         }
-        assertEquals(getMaxRows(), count);
+        return count;
     }
 
     protected int getPostCount() {
@@ -154,7 +143,7 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
     }
 
     protected int getMaxRows() {
-        return 100;
+        return 5;
     }
 
 
