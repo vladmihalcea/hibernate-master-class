@@ -26,9 +26,10 @@ public class ResultSetLimitTest extends DataSourceProviderIntegrationTest {
     public static final String INSERT_POST_COMMENT = "insert into post_comment (post_id, review, version, id) values (?, ?, ?, ?)";
 
     public static final String SELECT_POST_COMMENT =
-        "SELECT pc.id AS pc_id, p.id AS p_id  " +
+        "SELECT pc.id AS pc_id, p.title AS p_title  " +
         "FROM post_comment pc " +
-        "INNER JOIN post p ON p.id = pc.post_id ";
+        "INNER JOIN post p ON p.id = pc.post_id " +
+        "ORDER BY pc_id";
 
     private BatchEntityProvider entityProvider = new BatchEntityProvider();
 

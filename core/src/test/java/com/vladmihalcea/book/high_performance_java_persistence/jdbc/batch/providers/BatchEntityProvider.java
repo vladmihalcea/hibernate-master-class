@@ -110,7 +110,7 @@ public class BatchEntityProvider implements EntityProvider {
     }
 
     @Entity(name = "PostComment")
-    @Table(name = "post_comment", indexes = @Index(columnList = "post_id", name = "POST_ID_FK_IDX"))
+    @Table(name = "post_comment")
     public static class Comment {
 
         @Id
