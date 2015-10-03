@@ -105,6 +105,10 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
                 int index;
 
                 for (int i = 0; i < postCount; i++) {
+                    if (i > 0 && i % 100 == 0) {
+                        postStatement.executeBatch();
+                        postDetailsStatement.executeBatch();
+                    }
                     index = 0;
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
@@ -116,11 +120,6 @@ public class ResultSetCursorTest extends DataSourceProviderIntegrationTest {
                     postDetailsStatement.setTimestamp(++index, new Timestamp(System.currentTimeMillis()));
                     postDetailsStatement.setInt(++index, 0);
                     postDetailsStatement.addBatch();
-
-                    if (i % 100 == 0) {
-                        postStatement.executeBatch();
-                        postDetailsStatement.executeBatch();
-                    }
                 }
                 postStatement.executeBatch();
                 postDetailsStatement.executeBatch();

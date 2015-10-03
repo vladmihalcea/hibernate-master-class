@@ -50,24 +50,19 @@ public abstract class AbstractSequenceGeneratedKeysBatchPreparedStatementTest ex
         dropSequence(connection);
         createSequence(connection);
 
-        int count = 0;
-
         long startNanos = System.nanoTime();
-
+        int postCount = getPostCount();
+        int batchSize = getBatchSize();
         try(PreparedStatement postStatement = connection.prepareStatement(
-                "insert into post (id, title, version) " +
-                "values (?, ?, ?)")) {
-            int postCount = getPostCount();
-
+                "INSERT INTO post (id, title, version) VALUES (?, ?, ?)")) {
             for (int i = 0; i < postCount; i++) {
-                int index = 0;
-                postStatement.setLong(++index, getNextSequenceValue(connection));
-                postStatement.setString(++index, String.format("Post no. %1$d", i));
-                postStatement.setInt(++index, 0);
-                postStatement.addBatch();
-                if(++count % getBatchSize() == 0) {
+                if(i > 0 && i % batchSize == 0) {
                     postStatement.executeBatch();
                 }
+                postStatement.setLong(1, getNextSequenceValue(connection));
+                postStatement.setString(2, String.format("Post no. %1$d", i));
+                postStatement.setInt(3, 0);
+                postStatement.addBatch();
             }
             postStatement.executeBatch();
         }

@@ -77,13 +77,13 @@ public class SQLStandardResultSetLimitTest extends DataSourceProviderIntegration
 
                 for (int i = 0; i < postCount; i++) {
                     index = 0;
+                    if(i > 0 && i % 100 == 0) {
+                        postStatement.executeBatch();
+                    }
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
                     postStatement.addBatch();
-                    if(i % 100 == 0) {
-                        postStatement.executeBatch();
-                    }
                 }
                 postStatement.executeBatch();
 

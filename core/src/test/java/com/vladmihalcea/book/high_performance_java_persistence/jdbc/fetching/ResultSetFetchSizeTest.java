@@ -75,14 +75,14 @@ public class ResultSetFetchSizeTest extends DataSourceProviderIntegrationTest {
                 int index;
 
                 for (int i = 0; i < postCount; i++) {
+                    if(i > 0 && i % 100 == 0) {
+                        postStatement.executeBatch();
+                    }
                     index = 0;
                     postStatement.setString(++index, String.format("Post no. %1$d", i));
                     postStatement.setInt(++index, 0);
                     postStatement.setLong(++index, i);
                     postStatement.addBatch();
-                    if(i % 100 == 0) {
-                        postStatement.executeBatch();
-                    }
                 }
                 postStatement.executeBatch();
             } catch (SQLException e) {
