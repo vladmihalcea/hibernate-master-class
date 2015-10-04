@@ -35,7 +35,7 @@ public class ResultSetColumnSizeTest extends DataSourceProviderIntegrationTest {
                     "inner join post_details pd on p.id = pd.id ";
 
     public static final String SELECT_ID =
-            "select pc.id  " +
+            "select pc.version  " +
                     "from post_comment pc " +
                     "inner join post p on p.id = pc.post_id " +
                     "inner join post_details pd on p.id = pd.id ";
