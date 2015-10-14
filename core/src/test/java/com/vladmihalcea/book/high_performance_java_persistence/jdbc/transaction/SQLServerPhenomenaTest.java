@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * OraclePhenomenaTest - Test to validate Oracle phenomena
+ * SQLServerPhenomenaTest - Test to validate SQL Server phenomena
  *
  * @author Vlad Mihalcea
  */
