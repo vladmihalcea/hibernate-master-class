@@ -18,21 +18,21 @@
         <processorPath useClasspath="true" />
       </profile>
       <profile default="false" name="Annotation profile for hibernate-master-class-ant-bytecode-enhance" enabled="true">
-        <sourceOutputDir name="target\generated-sources\annotations" />
+        <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target\generated-test-sources\test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
         <module name="hibernate-master-class-ant-bytecode-enhance" />
       </profile>
       <profile default="false" name="Annotation profile for hibernate-master-class-maven-bytecode-enhance" enabled="true">
-        <sourceOutputDir name="target\generated-sources\annotations" />
+        <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target\generated-test-sources\test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
         <module name="hibernate-master-class-maven-bytecode-enhance" />
       </profile>
       <profile default="false" name="Annotation profile for hibernate-master-class-core" enabled="true">
-        <sourceOutputDir name="target\generated-sources\annotations" />
+        <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target\generated-test-sources\test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
