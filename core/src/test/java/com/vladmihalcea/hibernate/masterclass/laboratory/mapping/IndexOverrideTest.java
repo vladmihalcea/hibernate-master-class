@@ -44,6 +44,8 @@ public class IndexOverrideTest extends AbstractTest {
     }
 
     @Entity(name = "Base")
+    @Table(name="Base")
+    @Inheritance(strategy = InheritanceType.JOINED)
     public static abstract class Base {
 
         @Id
@@ -55,7 +57,7 @@ public class IndexOverrideTest extends AbstractTest {
         public Long getId() {
             return id;
         }
-        
+
         @Access(AccessType.PROPERTY)
         public String getX() {
             return x;
@@ -67,7 +69,7 @@ public class IndexOverrideTest extends AbstractTest {
     }
 
     @Entity(name = "ChildY")
-    @Inheritance(strategy = InheritanceType.JOINED)
+    @Table(name="ChildY")
     @DiscriminatorValue("Y")
     public static class ChildY extends Base {
 
@@ -83,6 +85,7 @@ public class IndexOverrideTest extends AbstractTest {
     }
 
     @Entity(name = "ChildZ")
+    @Table(name="ChildZ")
     @Inheritance(strategy = InheritanceType.JOINED)
     @DiscriminatorValue("Z")
     public static class ChildZ extends Base {
