@@ -55,8 +55,7 @@ public class IndexOverrideTest extends AbstractTest {
         public Long getId() {
             return id;
         }
-
-        @org.hibernate.annotations.Index(name = "X")
+        
         @Access(AccessType.PROPERTY)
         public String getX() {
             return x;

@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="91bc2394-15e3-4644-a4ee-73465b96692f" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/core/src/test/java/com/vladmihalcea/hibernate/masterclass/laboratory/mapping/IndexOverrideTest.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/compiler.xml" afterPath="$PROJECT_DIR$/.idea/compiler.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/encodings.xml" afterPath="$PROJECT_DIR$/.idea/encodings.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/test/resources/logback.xml" afterPath="$PROJECT_DIR$/core/src/test/resources/logback.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/src/test/java/com/vladmihalcea/hibernate/masterclass/laboratory/mapping/IndexOverrideTest.java" afterPath="$PROJECT_DIR$/core/src/test/java/com/vladmihalcea/hibernate/masterclass/laboratory/mapping/IndexOverrideTest.java" />
     </list>
     <ignored path="hibernate-master-class-parent.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -35,20 +31,20 @@
       <file leaf-file-name="IndexOverrideTest.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/core/src/test/java/com/vladmihalcea/hibernate/masterclass/laboratory/mapping/IndexOverrideTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5067568">
-              <caret line="41" column="81" selection-start-line="41" selection-start-column="81" selection-end-line="41" selection-end-column="81" />
+            <state vertical-scroll-proportion="0.7989865">
+              <caret line="57" column="8" selection-start-line="57" selection-start-column="8" selection-end-line="57" selection-end-column="8" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#1327#1328#0" expanded="true" />
                 <element signature="e#1360#1361#0" expanded="true" />
-                <element signature="e#1482#1483#0" expanded="true" />
-                <element signature="e#1514#1515#0" expanded="true" />
-                <element signature="e#1552#1553#0" expanded="true" />
-                <element signature="e#1586#1587#0" expanded="true" />
-                <element signature="e#1972#1973#0" expanded="true" />
-                <element signature="e#2015#2016#0" expanded="true" />
-                <element signature="e#2401#2402#0" expanded="true" />
-                <element signature="e#2444#2445#0" expanded="true" />
+                <element signature="e#1437#1438#0" expanded="true" />
+                <element signature="e#1469#1470#0" expanded="true" />
+                <element signature="e#1507#1508#0" expanded="true" />
+                <element signature="e#1541#1542#0" expanded="true" />
+                <element signature="e#1927#1928#0" expanded="true" />
+                <element signature="e#1970#1971#0" expanded="true" />
+                <element signature="e#2356#2357#0" expanded="true" />
+                <element signature="e#2399#2400#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -902,14 +898,11 @@
       <updated>1446370177795</updated>
       <workItem from="1446370181144" duration="383000" />
       <workItem from="1446370589467" duration="274000" />
-      <workItem from="1447436440021" duration="968000" />
+      <workItem from="1447436440021" duration="1513000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="IndexOverrideTest - 2015.11.13 at 19h 48m 47s.xml">
-      <configuration name="IndexOverrideTest" configurationId="JUnit" />
-    </history-entry>
     <history-entry file="IndexOverrideTest - 2015.11.13 at 19h 48m 58s.xml">
       <configuration name="IndexOverrideTest" configurationId="JUnit" />
     </history-entry>
@@ -937,9 +930,12 @@
     <history-entry file="IndexOverrideTest - 2015.11.13 at 19h 56m 20s.xml">
       <configuration name="IndexOverrideTest" configurationId="JUnit" />
     </history-entry>
+    <history-entry file="IndexOverrideTest - 2015.11.13 at 20h 05m 45s.xml">
+      <configuration name="IndexOverrideTest" configurationId="JUnit" />
+    </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="1625000" />
+    <option name="totallyTimeSpent" value="2170000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1932" height="1056" extended-state="0" />
@@ -952,7 +948,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32827735" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32827735" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24946581" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -1483,20 +1479,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/core/src/test/java/com/vladmihalcea/hibernate/masterclass/laboratory/mapping/IndexOverrideTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5067568">
-          <caret line="41" column="81" selection-start-line="41" selection-start-column="81" selection-end-line="41" selection-end-column="81" />
+        <state vertical-scroll-proportion="0.7989865">
+          <caret line="57" column="8" selection-start-line="57" selection-start-column="8" selection-end-line="57" selection-end-column="8" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#1327#1328#0" expanded="true" />
             <element signature="e#1360#1361#0" expanded="true" />
-            <element signature="e#1482#1483#0" expanded="true" />
-            <element signature="e#1514#1515#0" expanded="true" />
-            <element signature="e#1552#1553#0" expanded="true" />
-            <element signature="e#1586#1587#0" expanded="true" />
-            <element signature="e#1972#1973#0" expanded="true" />
-            <element signature="e#2015#2016#0" expanded="true" />
-            <element signature="e#2401#2402#0" expanded="true" />
-            <element signature="e#2444#2445#0" expanded="true" />
+            <element signature="e#1437#1438#0" expanded="true" />
+            <element signature="e#1469#1470#0" expanded="true" />
+            <element signature="e#1507#1508#0" expanded="true" />
+            <element signature="e#1541#1542#0" expanded="true" />
+            <element signature="e#1927#1928#0" expanded="true" />
+            <element signature="e#1970#1971#0" expanded="true" />
+            <element signature="e#2356#2357#0" expanded="true" />
+            <element signature="e#2399#2400#0" expanded="true" />
           </folding>
         </state>
       </provider>
