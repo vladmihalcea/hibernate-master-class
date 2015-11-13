@@ -52,13 +52,13 @@ public class IndexOverrideTest extends AbstractTest {
         @GeneratedValue(strategy = GenerationType.AUTO)
         private Long id;
 
-        private String x;
+        @Transient
+        protected String x;
 
         public Long getId() {
             return id;
         }
 
-        @Access(AccessType.PROPERTY)
         public String getX() {
             return x;
         }
@@ -78,9 +78,8 @@ public class IndexOverrideTest extends AbstractTest {
         @Override
         @org.hibernate.annotations.Index(name = "xy")
         @Access(AccessType.PROPERTY)
-        @Column(insertable = false, updatable = false)
         public String getX() {
-            return super.getX();
+            return x;
         }
     }
 
@@ -95,9 +94,8 @@ public class IndexOverrideTest extends AbstractTest {
         @Override
         @org.hibernate.annotations.Index(name = "xz")
         @Access(AccessType.PROPERTY)
-        @Column(insertable = false, updatable = false)
         public String getX() {
-            return super.getX();
+            return x;
         }
     }
 }
