@@ -33,16 +33,12 @@ public abstract class AbstractLockModeOptimisticTest extends AbstractTest {
     @Before
     public void init() {
         super.init();
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                Product product = new Product();
-                product.setId(1L);
-                product.setDescription("USB Flash Drive");
-                product.setPrice(BigDecimal.valueOf(12.99));
-                session.persist(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            Product product = new Product();
+            product.setId(1L);
+            product.setDescription("USB Flash Drive");
+            product.setPrice(BigDecimal.valueOf(12.99));
+            session.persist(product);
         });
     }
 

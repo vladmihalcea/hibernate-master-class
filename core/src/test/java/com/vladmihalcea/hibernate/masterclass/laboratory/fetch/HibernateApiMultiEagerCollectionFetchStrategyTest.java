@@ -4,7 +4,6 @@ import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.hibernate.Session;
 import org.hibernate.criterion.CriteriaSpecification;
 import org.hibernate.criterion.Restrictions;
 import org.junit.Test;
@@ -31,134 +30,123 @@ public class HibernateApiMultiEagerCollectionFetchStrategyTest extends AbstractT
 
     @Override
     protected Class<?>[] entities() {
-        return new Class<?>[] {
-            WarehouseProductInfo.class,
-            Importer.class,
-            Image.class,
-            Product.class,
-            Company.class,
-            SubVersion.class,
-            Version.class,
-            Review.class,
+        return new Class<?>[]{
+                WarehouseProductInfo.class,
+                Importer.class,
+                Image.class,
+                Product.class,
+                Company.class,
+                SubVersion.class,
+                Version.class,
+                Review.class,
         };
     }
 
     @Override
     public void init() {
         super.init();
-        productId = doInTransaction(new TransactionCallable<Long>() {
-            @Override
-            public Long execute(Session session) {
-                Company company = new Company();
-                company.setName("TV Company");
-                session.persist(company);
 
-                Product product = new Product("tvCode");
-                product.setName("TV");
-                product.setCompany(company);
+        productId = doInTransaction(session -> {
+                    Company company = new Company();
+                    company.setName("TV Company");
+                    session.persist(company);
 
-                Image frontImage = new Image();
-                frontImage.setName("front image");
-                frontImage.setIndex(0);
+                    Product product = new Product("tvCode");
+                    product.setName("TV");
+                    product.setCompany(company);
 
-                Image sideImage = new Image();
-                sideImage.setName("side image");
-                sideImage.setIndex(1);
+                    Image frontImage = new Image();
+                    frontImage.setName("front image");
+                    frontImage.setIndex(0);
 
-                product.addImage(frontImage);
-                product.addImage(sideImage);
+                    Image sideImage = new Image();
+                    sideImage.setName("side image");
+                    sideImage.setIndex(1);
 
-                WarehouseProductInfo warehouseProductInfo = new WarehouseProductInfo();
-                warehouseProductInfo.setQuantity(101);
-                product.addWarehouse(warehouseProductInfo);
+                    product.addImage(frontImage);
+                    product.addImage(sideImage);
 
-                Importer importer = new Importer();
-                importer.setName("Importer");
-                session.persist(importer);
-                product.setImporter(importer);
+                    WarehouseProductInfo warehouseProductInfo = new WarehouseProductInfo();
+                    warehouseProductInfo.setQuantity(101);
+                    product.addWarehouse(warehouseProductInfo);
 
-                Review review1 = new Review();
-                review1.setComment("Great product");
+                    Importer importer = new Importer();
+                    importer.setName("Importer");
+                    session.persist(importer);
+                    product.setImporter(importer);
 
-                Review review2 = new Review();
-                review2.setComment("Sensational product");
+                    Review review1 = new Review();
+                    review1.setComment("Great product");
 
-                product.addReview(review1);
-                product.addReview(review2);
+                    Review review2 = new Review();
+                    review2.setComment("Sensational product");
 
-                session.persist(product);
-                return product.getId();
-            }
-        });
+                    product.addReview(review1);
+                    product.addReview(review2);
+
+                    session.persist(product);
+                    return product.getId();
+                }
+        );
     }
 
     @Test
     public void testFetchChild() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                LOGGER.info("Fetch using find");
-                Product product = (Product) session.get(Product.class, productId);
-                assertNotNull(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            LOGGER.info("Fetch using find");
+            Product product = (Product) session.get(Product.class, productId);
+            assertNotNull(product);
+            return null;
+
         });
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                LOGGER.info("Fetch using JPQL");
-                Product product = (Product) session.createQuery(
-                        "select p " +
-                                "from Product p " +
-                                "where p.id = :productId")
-                        .setParameter("productId", productId)
-                        .uniqueResult();
-                assertNotNull(product);
-                return null;
-            }
+        doInTransaction(session -> {
+            LOGGER.info("Fetch using JPQL");
+            Product product = (Product) session.createQuery(
+                    "select p " +
+                            "from Product p " +
+                            "where p.id = :productId")
+                    .setParameter("productId", productId)
+                    .uniqueResult();
+            assertNotNull(product);
+            return null;
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
-                LOGGER.info("Fetch using Criteria");
+            LOGGER.info("Fetch using Criteria");
 
-                Product product = (Product) session.createCriteria(Product.class)
-                        .add(Restrictions.eq("id", productId))
-                        .uniqueResult();
-                assertNotNull(product);
-                return null;
-            }
+            Product product = (Product) session.createCriteria(Product.class)
+                    .add(Restrictions.eq("id", productId))
+                    .uniqueResult();
+            assertNotNull(product);
+            return null;
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
-                LOGGER.info("Fetch list using Criteria");
+            LOGGER.info("Fetch list using Criteria");
 
-                List products = session.createCriteria(Product.class)
-                        .add(Restrictions.eq("id", productId))
-                        .list();
-                assertEquals(4, products.size());
-                assertSame(products.get(0), products.get(1));
-                return null;
-            }
+            List products = session.createCriteria(Product.class)
+                    .add(Restrictions.eq("id", productId))
+                    .list();
+            assertEquals(4, products.size());
+            assertSame(products.get(0), products.get(1));
+            return null;
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
-                LOGGER.info("Fetch distinct list using Criteria");
+                    LOGGER.info("Fetch distinct list using Criteria");
 
-                List products = session.createCriteria(Product.class)
-                        .add(Restrictions.eq("id", productId))
-                        .setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY)
-                        .list();
-                assertEquals(1, products.size());
-                return null;
-            }
-        });
+                    List products = session.createCriteria(Product.class)
+                            .add(Restrictions.eq("id", productId))
+                            .setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY)
+                            .list();
+                    assertEquals(1, products.size());
+                    return null;
+                }
+        );
 
     }
 

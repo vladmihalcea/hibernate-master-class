@@ -23,9 +23,7 @@ public class AntBytecodeEnhancedTest
 
     @Test
     public void testDirtyChecking() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 EnhancedOrderLine orderLine = new EnhancedOrderLine();
                 orderLine.setNumber(987L);
                 orderLine.setOrderedBy("System");
@@ -38,7 +36,7 @@ public class AntBytecodeEnhancedTest
                 session.flush();
                 orderLine.setOrderedBy("Alex");
                 return null;
-            }
+
         });
     }
 }

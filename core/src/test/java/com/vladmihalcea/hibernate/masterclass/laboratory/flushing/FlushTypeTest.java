@@ -34,24 +34,20 @@ public class FlushTypeTest extends AbstractTest {
 
     @Test
     public void testAutoFlushHQL() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 session.persist(product);
                 LOGGER.info("Check if Product is flushed when selecting Users using HQL");
                 assertEquals(0L,  session.createQuery("select count(id) from User").uniqueResult());
                 assertEquals(product.getId(), session.createQuery("select p.id from Product p").uniqueResult());
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAutoFlushHQLSubSelect() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 product.setColor("Blue");
                 session.persist(product);
@@ -62,15 +58,13 @@ public class FlushTypeTest extends AbstractTest {
                         "where u.favoriteColor in (select distinct(p.color) from Product p)"
                 ).uniqueResult());
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAutoFlushHQLThetaJoinSelect() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 product.setColor("Blue");
                 session.persist(product);
@@ -81,52 +75,46 @@ public class FlushTypeTest extends AbstractTest {
                                 "where u.favoriteColor = p.color"
                 ).uniqueResult());
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAutoFlushSQLQuery() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 session.persist(product);
                 LOGGER.info("Check if Product is flushed when selecting Users using SQL");
                 assertEquals(BigInteger.ZERO,  session.createSQLQuery("select count(id) from user").uniqueResult());
                 assertNull(session.createSQLQuery("select id from product").uniqueResult());
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAutoFlushSQLAlwaysFlush() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 session.persist(product);
                 LOGGER.info("Check if Product is flushed when selecting Users using SQL with ALWAYS flush mode");
                 assertEquals(BigInteger.ZERO,  session.createSQLQuery("select count(id) from user").uniqueResult());
                 assertEquals(product.getId(), session.createSQLQuery("select id from product").setFlushMode(FlushMode.ALWAYS).uniqueResult());
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAutoFlushSQLAddSynchronization() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 session.persist(product);
                 LOGGER.info("Check if Product is flushed when selecting Users using SQL with synchronization");
                 assertEquals(BigInteger.ZERO,  session.createSQLQuery("select count(id) from user").uniqueResult());
                 assertEquals(product.getId(), session.createSQLQuery("select id from product").addSynchronizedEntityClass(Product.class).uniqueResult());
                 return null;
-            }
+
         });
     }
     
@@ -134,16 +122,13 @@ public class FlushTypeTest extends AbstractTest {
 
     @Test
     public void testAutoFlushSQLNamedQuery() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Product product = new Product();
                 session.persist(product);
                 LOGGER.info("Check if Product is flushed when selecting Users using SQL with named query");
                 assertEquals(BigInteger.ZERO,  session.createSQLQuery("select count(id) from user").uniqueResult());
                 assertNull(session.getNamedQuery("product_ids").uniqueResult());
                 return null;
-            }
         });
     }
 }

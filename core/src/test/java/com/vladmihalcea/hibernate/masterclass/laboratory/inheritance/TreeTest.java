@@ -26,9 +26,7 @@ public class TreeTest extends AbstractTest {
     @Test
     public void testTree() {
         LOGGER.debug("testAddWebResource");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 LocalFolder rootLocalFolder = new LocalFolder();
                 session.persist(rootLocalFolder);
                 LocalFolder localFolder1 = new LocalFolder();
@@ -47,7 +45,7 @@ public class TreeTest extends AbstractTest {
                 remoteFolder1.addChild(remoteFolder11);
                 session.persist(remoteFolder11);
                 return null;
-            }
+
         });
     }
 

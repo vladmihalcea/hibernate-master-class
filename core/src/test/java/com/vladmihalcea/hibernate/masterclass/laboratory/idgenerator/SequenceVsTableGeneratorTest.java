@@ -26,30 +26,22 @@ public class SequenceVsTableGeneratorTest extends AbstractTest {
     @Test
     public void testSequenceIdentifierGenerator() {
         LOGGER.debug("testSequenceIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                for (int i = 0; i < 5; i++) {
-                    session.persist(new SequenceIdentifier());
-                }
-                session.flush();
-                return null;
+        doInTransaction(session -> {
+            for (int i = 0; i < 5; i++) {
+                session.persist(new SequenceIdentifier());
             }
+            session.flush();
         });
     }
 
     @Test
     public void testTableSequenceIdentifierGenerator() {
         LOGGER.debug("testTableSequenceIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                for (int i = 0; i < 5; i++) {
-                    session.persist(new TableSequenceIdentifier());
-                }
-                session.flush();
-                return null;
+        doInTransaction(session -> {
+            for (int i = 0; i < 5; i++) {
+                session.persist(new TableSequenceIdentifier());
             }
+            session.flush();
         });
     }
 

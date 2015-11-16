@@ -31,9 +31,7 @@ public class OverrideIdentifierDefinitionTest extends AbstractTest {
     @Test
     public void testAddWebResource() {
         LOGGER.debug("testAddWebResource");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 try {
                     WebResource webResource = new WebResource();
                     webResource.setId(new URL("http://vladmihalcea.com"));
@@ -43,7 +41,7 @@ public class OverrideIdentifierDefinitionTest extends AbstractTest {
                     fail(e.getMessage());
                 }
                 return null;
-            }
+
         });
     }
 
@@ -51,29 +49,25 @@ public class OverrideIdentifierDefinitionTest extends AbstractTest {
     @Ignore
     public void testAddOrder() {
         LOGGER.debug("testAddOrder");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Order order = new Order();
                 session.persist(order);
                 session.flush();
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testAddBook() {
         LOGGER.debug("testAddBook");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 Book book = new Book();
                 book.setId(1234567890123L);
                 session.persist(book);
                 session.flush();
                 return null;
-            }
+
         });
     }
 
@@ -81,15 +75,13 @@ public class OverrideIdentifierDefinitionTest extends AbstractTest {
     @Ignore("not finished yet")
     public void testAddInfoId() {
         LOGGER.debug("testAddInfoId");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 InfoId infoId = new InfoId();
                 //infoId.setId(UUID.randomUUID());
                 session.persist(infoId);
                 session.flush();
                 return null;
-            }
+
         });
     }
 
@@ -97,15 +89,13 @@ public class OverrideIdentifierDefinitionTest extends AbstractTest {
     @Ignore("not finished yet")
     public void testAddInfoLine() {
         LOGGER.debug("testAddInfoLine");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 InfoLine infoLine = new InfoLine();
                 //infoId.setId(UUID.randomUUID());
                 session.persist(infoLine);
                 session.flush();
                 return null;
-            }
+
         });
     }
 

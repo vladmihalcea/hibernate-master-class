@@ -45,9 +45,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
     @Override
     public void init() {
         super.init();
-        productId = doInTransaction(new TransactionCallable<Long>() {
-            @Override
-            public Long execute(Session session) {
+        productId = doInTransaction(session -> {
                 Company company = new Company();
                 company.setName("TV Company");
                 session.persist(company);
@@ -78,25 +76,21 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
 
                 session.persist(product);
                 return product.getId();
-            }
+
         });
     }
 
     @Test
     public void testFetchChild() {
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 LOGGER.info("Fetch using find");
                 Product product = (Product) session.get(Product.class, productId);
                 assertNotNull(product);
                 return null;
-            }
+
         });
 
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 LOGGER.info("Fetch using JPQL");
                 Product product = (Product) session.createQuery(
                         "select p " +
@@ -106,11 +100,9 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                         .uniqueResult();
                 assertNotNull(product);
                 return null;
-            }
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
                 LOGGER.info("Fetch using Criteria");
 
@@ -119,11 +111,9 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                         .uniqueResult();
                 assertNotNull(product);
                 return null;
-            }
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
                 LOGGER.info("Fetch list using Criteria");
 
@@ -133,11 +123,9 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                 assertEquals(2, products.size());
                 assertSame(products.get(0), products.get(1));
                 return null;
-            }
+
         });
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
 
                 LOGGER.info("Fetch distinct list using Criteria");
 
@@ -147,7 +135,7 @@ public class HibernateApiFetchStrategyTest extends AbstractTest {
                         .list();
                 assertEquals(1, products.size());
                 return null;
-            }
+            
         });
     }
 

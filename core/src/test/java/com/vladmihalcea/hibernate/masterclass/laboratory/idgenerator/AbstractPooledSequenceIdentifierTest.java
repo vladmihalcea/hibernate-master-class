@@ -4,6 +4,7 @@ import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 import org.hibernate.Session;
 import org.hibernate.jdbc.Work;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -25,28 +26,24 @@ public abstract class AbstractPooledSequenceIdentifierTest extends AbstractTest 
 
     protected void insertSequences() {
         LOGGER.debug("testSequenceIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
-                for (int i = 0; i < 8; i++) {
-                    session.persist(newEntityInstance());
-                }
-                session.flush();
-                assertEquals(8, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
-                insertNewRow(session);
-                insertNewRow(session);
-                insertNewRow(session);
-                assertEquals(11, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
-                List<Number> ids = session.createSQLQuery("SELECT id FROM sequenceIdentifier").list();
-                for (Number id : ids) {
-                    LOGGER.debug("Found id: {}", id);
-                }
-                for (int i = 0; i < 3; i++) {
-                    session.persist(newEntityInstance());
-                }
-                session.flush();
-                return null;
+        doInTransaction(session -> {
+            for (int i = 0; i < 8; i++) {
+                session.persist(newEntityInstance());
             }
+            session.flush();
+            assertEquals(8, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
+            insertNewRow(session);
+            insertNewRow(session);
+            insertNewRow(session);
+            assertEquals(11, ((Number) session.createSQLQuery("SELECT COUNT(*) FROM sequenceIdentifier").uniqueResult()).intValue());
+            List<Number> ids = session.createSQLQuery("SELECT id FROM sequenceIdentifier").list();
+            for (Number id : ids) {
+                LOGGER.debug("Found id: {}", id);
+            }
+            for (int i = 0; i < 3; i++) {
+                session.persist(newEntityInstance());
+            }
+            session.flush();
         });
     }
 

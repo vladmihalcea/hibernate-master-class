@@ -32,45 +32,39 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
     @Test
     public void testIdentityIdentifierGenerator() {
         LOGGER.debug("testIdentityIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 for (int i = 0; i < 5; i++) {
                     session.persist(new IdentityIdentifier());
                 }
                 session.flush();
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testSequenceIdentifierGenerator() {
         LOGGER.debug("testSequenceIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 for (int i = 0; i < 5; i++) {
                     session.persist(new SequenceIdentifier());
                 }
                 session.flush();
                 return null;
-            }
+
         });
     }
 
     @Test
     public void testTableSequenceIdentifierGenerator() {
         LOGGER.debug("testTableSequenceIdentifierGenerator");
-        doInTransaction(new TransactionCallable<Void>() {
-            @Override
-            public Void execute(Session session) {
+        doInTransaction(session -> {
                 for (int i = 0; i < 5; i++) {
                     session.persist(new TableSequenceIdentifier());
                 }
                 session.flush();
                 return null;
-            }
+
         });
     }
 
