@@ -34,6 +34,8 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         Properties properties = super.getProperties();
         properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
         properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        properties.put("hibernate.cache.use_structured_entries", Boolean.TRUE.toString());
+        
         return properties;
     }
 
@@ -56,10 +58,15 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             assertNotNull(repository);
         });
 
+        printEntityCacheStats(Repository.class.getName(), true);
+
         doInTransaction(session -> {
             LOGGER.info("Load Repository from cache");
             session.get(Repository.class, 1L);
         });
+        
+        printEntityCacheStats(Repository.class.getName(), true);
+
     }
 
     @Test
