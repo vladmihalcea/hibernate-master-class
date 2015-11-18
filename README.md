@@ -31,11 +31,13 @@ The Integration Tests require some external configurations:
  >
  > alter system set sessions=1000 scope=spfile;
 
- You need to download the [Orcale JDBC Driver (ojdbc6.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
+ You need to download the [Orcale JDBC Driver (ojdbc6.jar or ojdbc7_g.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
  
- You need to install the ojdbc6.jar on your local Maven repository using the following command:
+ You need to install the ojdbc6.jar or ojdbc7_g.jar on your local Maven repository using the following command:
  
  > $ mvn install:install-file -Dfile=ojdbc6.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
+ 
+ > mvn install:install-file -Dfile=ojdbc7_g.jar -DgroupId=com.oracle -DartifactId=ojdbc7_g -Dversion=12.1.0.1 -Dpackaging=jar 
  
 * MySQL
   
