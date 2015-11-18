@@ -2,10 +2,12 @@ package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+
 import net.sourceforge.jtds.jdbcx.JtdsDataSource;
 import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
 import oracle.jdbc.pool.OracleDataSource;
+
 import org.hibernate.Interceptor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -16,6 +18,7 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl;
 import org.hibernate.jpa.boot.internal.PersistenceUnitInfoDescriptor;
 import org.hibernate.jpa.internal.EntityManagerFactoryImpl;
+import org.hibernate.stat.SecondLevelCacheStatistics;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +32,7 @@ import javax.persistence.EntityTransaction;
 import javax.persistence.spi.PersistenceUnitInfo;
 import javax.persistence.spi.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
+
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -38,8 +42,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractTest {
-
-    protected interface DataSourceProvider {
+	
+	protected interface DataSourceProvider {
 
         enum IdentifierStrategy {
             IDENTITY,
@@ -545,8 +549,13 @@ public abstract class AbstractTest {
     protected Properties getProperties() {
         Properties properties = new Properties();
         properties.put("hibernate.dialect", getDataSourceProvider().hibernateDialect());
-        //log settings
         properties.put("hibernate.hbm2ddl.auto", "create-drop");
+        //log settings
+        //properties.put("hibernate.show_sql", Boolean.TRUE.toString());
+        //properties.put("hibernate.format_sql", Boolean.TRUE.toString());
+        //properties.put("hibernate.use_sql_coments", Boolean.FALSE.toString());
+        properties.put("hibernate.generate_statistics", Boolean.TRUE.toString());
+        
         //data source settings
         properties.put("hibernate.connection.datasource", newDataSource());
         return properties;
@@ -857,4 +866,40 @@ public abstract class AbstractTest {
             throw new IllegalStateException(e);
         }
     }
+
+    protected void printEntityCacheStats(String region, boolean printEntries) {
+		SecondLevelCacheStatistics stats = getCacheStats(region);
+		LOGGER.info(region + " Stats:  \n\n\t" + stats + "\n");
+		if (printEntries) {
+			@SuppressWarnings("rawtypes")
+			Map cacheEntries = stats.getEntries();
+			LOGGER.info(Arrays.toString(cacheEntries.entrySet().toArray()));
+		}
+	}
+	
+	protected void printEntityCacheStats(String region) {
+		printEntityCacheStats(region, false);
+	}
+	
+	protected void printQueryCacheStats(String region) {
+		SecondLevelCacheStatistics stats = getCacheStats(region);
+		LOGGER.info(region + " Stats:  \n\n\t" + stats + "\n");
+	}
+
+	protected SecondLevelCacheStatistics getCacheStats(String region) {
+		SecondLevelCacheStatistics stats = getSessionFactory().getStatistics().getSecondLevelCacheStatistics(region);
+		if (stats == null){
+			LOGGER.warn("No such cache:  " + region);
+		}
+		return stats;
+	}
+    
+	protected void print2LCRegionNames(){
+		String[] arr = getSessionFactory().getStatistics().getSecondLevelCacheRegionNames();
+
+		LOGGER.info("2LC Region names:");
+		for (String rn : arr) {
+			LOGGER.info("\t --->" + rn);
+		}		
+	}
 }

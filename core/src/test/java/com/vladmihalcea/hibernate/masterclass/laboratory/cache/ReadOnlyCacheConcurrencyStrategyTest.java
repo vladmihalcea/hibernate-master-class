@@ -34,6 +34,8 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
         Properties properties = super.getProperties();
         properties.put("hibernate.cache.use_second_level_cache", Boolean.TRUE.toString());
         properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        properties.put("hibernate.cache.use_structured_entries", Boolean.TRUE.toString());
+        
         return properties;
     }
 
@@ -56,10 +58,15 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             assertNotNull(repository);
         });
 
+        printEntityCacheStats(Repository.class.getName(), true);
+
         doInTransaction(session -> {
             LOGGER.info("Load Repository from cache");
             session.get(Repository.class, 1L);
         });
+        
+        printEntityCacheStats(Repository.class.getName(), true);
+
     }
 
     @Test
@@ -77,18 +84,30 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             );
             session.persist(commit);
         });
+        
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+
         doInTransaction(session -> {
             LOGGER.info("Load Commit from database ");
             Commit commit = (Commit)
                     session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
+
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+
         doInTransaction(session -> {
             LOGGER.info("Load Commit from cache");
             Commit commit = (Commit)
                     session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
+
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+        
     }
 
     @Test
@@ -97,6 +116,9 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             LOGGER.info("Read-only cache entries cannot be updated");
             doInTransaction(session -> {
                 Repository repository = (Repository) session.get(Repository.class, 1L);
+
+                printEntityCacheStats(Repository.class.getName());
+                
                 repository.setName("High-Performance Hibernate");
             });
         } catch (Exception e) {
@@ -112,8 +134,12 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             assertNotNull(repository);
             session.delete(repository);
         });
+        
+        printEntityCacheStats(Repository.class.getName());
+        
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
+            printEntityCacheStats(Repository.class.getName());
             assertNull(repository);
         });
     }
