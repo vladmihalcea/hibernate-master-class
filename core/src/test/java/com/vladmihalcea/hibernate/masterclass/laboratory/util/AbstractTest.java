@@ -11,7 +11,10 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl;
+import org.hibernate.jpa.boot.internal.PersistenceUnitInfoDescriptor;
 import org.hibernate.jpa.internal.EntityManagerFactoryImpl;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.After;
@@ -23,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
+import javax.persistence.spi.PersistenceUnitInfo;
 import javax.persistence.spi.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
 import java.sql.*;
@@ -31,6 +35,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class AbstractTest {
 
@@ -484,10 +489,14 @@ public abstract class AbstractTest {
         return nativeHibernateSessionFactoryBootsrap() ? sf : emf.unwrap(SessionFactory.class);
     }
     protected boolean nativeHibernateSessionFactoryBootsrap() {
-        return false;
+        return true;
     }
 
     protected abstract Class<?>[] entities();
+
+    protected List<String> entityClassNames() {
+        return Arrays.asList(entities()).stream().map(Class::getName).collect(Collectors.toList());
+    }
 
     protected String[] packages() {
         return null;
@@ -521,32 +530,16 @@ public abstract class AbstractTest {
     }
 
     protected EntityManagerFactory newEntityManagerFactory() {
-        Properties properties = getProperties();
-        Configuration configuration = new Configuration().addProperties(properties);
-        for(Class<?> entityClass : entities()) {
-            configuration.addAnnotatedClass(entityClass);
-        }
-        String[] packages = packages();
-        if(packages != null) {
-            for(String scannedPackage : packages) {
-                configuration.addPackage(scannedPackage);
-            }
-        }
-        Interceptor interceptor = interceptor();
-        if(interceptor != null) {
-            configuration.setInterceptor(interceptor);
-        }
-
-        return new EntityManagerFactoryImpl(
-                PersistenceUnitTransactionType.RESOURCE_LOCAL,
-                true,
-                null,
-                configuration,
-                new StandardServiceRegistryBuilder()
-                        .applySettings(properties)
-                        .build(),
-                null
+        PersistenceUnitInfo persistenceUnitInfo = new PersistenceUnitInfoImpl(
+            getClass().getSimpleName(), entityClassNames(), getProperties()
         );
+
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put(org.hibernate.jpa.AvailableSettings.INTERCEPTOR, interceptor());
+        EntityManagerFactoryBuilderImpl entityManagerFactoryBuilder = new EntityManagerFactoryBuilderImpl(
+            new PersistenceUnitInfoDescriptor(persistenceUnitInfo), configuration
+        );
+        return entityManagerFactoryBuilder.build();
     }
 
     protected Properties getProperties() {
