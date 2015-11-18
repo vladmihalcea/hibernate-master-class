@@ -558,9 +558,9 @@ public abstract class AbstractTest {
         properties.put("hibernate.dialect", getDataSourceProvider().hibernateDialect());
         properties.put("hibernate.hbm2ddl.auto", "create-drop");
         //log settings
-//        properties.put("hibernate.show_sql", Boolean.TRUE.toString());
-//        properties.put("hibernate.format_sql", Boolean.TRUE.toString());
-//        properties.put("hibernate.use_sql_coments", Boolean.FALSE.toString());
+        //properties.put("hibernate.show_sql", Boolean.TRUE.toString());
+        //properties.put("hibernate.format_sql", Boolean.TRUE.toString());
+        //properties.put("hibernate.use_sql_coments", Boolean.FALSE.toString());
         properties.put("hibernate.generate_statistics", Boolean.TRUE.toString());
         
         //data source settings
@@ -876,11 +876,11 @@ public abstract class AbstractTest {
 
     protected void printEntityCacheStats(String region, boolean printEntries) {
 		SecondLevelCacheStatistics stats = getCacheStats(region);
-		LOGGER.info(region + " Stats:  " + stats);
+		LOGGER.info(region + " Stats:  \n\n\t" + stats + "\n");
 		if (printEntries) {
 			@SuppressWarnings("rawtypes")
 			Map cacheEntries = stats.getEntries();
-			LOGGER.info(cacheEntries.toString());
+			LOGGER.info(Arrays.toString(cacheEntries.entrySet().toArray()));
 		}
 	}
 	
@@ -890,13 +890,14 @@ public abstract class AbstractTest {
 	
 	protected void printQueryCacheStats(String region) {
 		SecondLevelCacheStatistics stats = getCacheStats(region);
-		LOGGER.info(region + " Stats:  " + stats);
+		LOGGER.info(region + " Stats:  \n\n\t" + stats + "\n");
 	}
 
 	protected SecondLevelCacheStatistics getCacheStats(String region) {
 		SecondLevelCacheStatistics stats = getSessionFactory().getStatistics().getSecondLevelCacheStatistics(region);
-		if (stats == null)
-			throw new IllegalArgumentException("No such cache:  " + region);
+		if (stats == null){
+			LOGGER.warn("No such cache:  " + region);
+		}
 		return stats;
 	}
     

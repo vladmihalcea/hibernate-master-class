@@ -84,18 +84,30 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             );
             session.persist(commit);
         });
+        
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+
         doInTransaction(session -> {
             LOGGER.info("Load Commit from database ");
             Commit commit = (Commit)
                     session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
+
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+
         doInTransaction(session -> {
             LOGGER.info("Load Commit from cache");
             Commit commit = (Commit)
                     session.get(Commit.class, 1L);
             assertEquals(2, commit.getChanges().size());
         });
+
+        printEntityCacheStats(Repository.class.getName());
+        printEntityCacheStats(Commit.class.getName());
+        
     }
 
     @Test
@@ -104,6 +116,9 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             LOGGER.info("Read-only cache entries cannot be updated");
             doInTransaction(session -> {
                 Repository repository = (Repository) session.get(Repository.class, 1L);
+
+                printEntityCacheStats(Repository.class.getName());
+                
                 repository.setName("High-Performance Hibernate");
             });
         } catch (Exception e) {
@@ -119,8 +134,12 @@ public class ReadOnlyCacheConcurrencyStrategyTest extends AbstractTest {
             assertNotNull(repository);
             session.delete(repository);
         });
+        
+        printEntityCacheStats(Repository.class.getName());
+        
         doInTransaction(session -> {
             Repository repository = (Repository) session.get(Repository.class, 1L);
+            printEntityCacheStats(Repository.class.getName());
             assertNull(repository);
         });
     }
