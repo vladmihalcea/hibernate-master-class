@@ -128,7 +128,7 @@ public class LockModePessimisticReadWriteIntegrationTest extends AbstractPostgre
                 },
                 (session, product) -> {
                     session.buildLockRequest(new LockOptions(LockMode.PESSIMISTIC_READ)).lock(product);
-                    LOGGER.info("PESSIMISTIC_WRITE acquired");
+                    LOGGER.info("PESSIMISTIC_READ acquired");
                 }
         );
     }
