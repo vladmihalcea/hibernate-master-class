@@ -1,45 +1,57 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.util;
 
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
-
-import net.sourceforge.jtds.jdbcx.JtdsDataSource;
-import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
-import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
-import oracle.jdbc.pool.OracleDataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.spi.PersistenceUnitInfo;
+import javax.sql.DataSource;
 
 import org.hibernate.Interceptor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.jpa.boot.internal.EntityManagerFactoryBuilderImpl;
 import org.hibernate.jpa.boot.internal.PersistenceUnitInfoDescriptor;
-import org.hibernate.jpa.internal.EntityManagerFactoryImpl;
 import org.hibernate.stat.SecondLevelCacheStatistics;
-import org.hsqldb.jdbc.JDBCDataSource;
+
 import org.junit.After;
 import org.junit.Before;
-import org.postgresql.ds.PGSimpleDataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.spi.PersistenceUnitInfo;
-import javax.persistence.spi.PersistenceUnitTransactionType;
-import javax.sql.DataSource;
-
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import net.sourceforge.jtds.jdbcx.JtdsDataSource;
+import net.ttddyy.dsproxy.listener.SLF4JQueryLoggingListener;
+import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
+import oracle.jdbc.pool.OracleDataSource;
+import org.hsqldb.jdbc.JDBCDataSource;
+import org.postgresql.ds.PGSimpleDataSource;
 
 public abstract class AbstractTest {
 	
@@ -469,7 +481,7 @@ public abstract class AbstractTest {
 
     @Before
     public void init() {
-        if(nativeHibernateSessionFactoryBootsrap()) {
+        if( nativeHibernateSessionFactoryBootstrap()) {
             sf = newSessionFactory();
         } else {
             emf = newEntityManagerFactory();
@@ -478,7 +490,7 @@ public abstract class AbstractTest {
 
     @After
     public void destroy() {
-        if(nativeHibernateSessionFactoryBootsrap()) {
+        if( nativeHibernateSessionFactoryBootstrap()) {
             sf.close();
         } else {
             emf.close();
@@ -490,9 +502,9 @@ public abstract class AbstractTest {
     }
 
     public SessionFactory getSessionFactory() {
-        return nativeHibernateSessionFactoryBootsrap() ? sf : emf.unwrap(SessionFactory.class);
+        return nativeHibernateSessionFactoryBootstrap() ? sf : emf.unwrap( SessionFactory.class);
     }
-    protected boolean nativeHibernateSessionFactoryBootsrap() {
+    protected boolean nativeHibernateSessionFactoryBootstrap() {
         return true;
     }
 

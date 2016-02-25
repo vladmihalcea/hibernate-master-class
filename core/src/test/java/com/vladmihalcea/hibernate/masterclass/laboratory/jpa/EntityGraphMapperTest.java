@@ -162,4 +162,9 @@ public class EntityGraphMapperTest extends AbstractTest {
     protected int getPostCommentCount() {
         return 10;
     }
+
+    @Override
+    protected boolean nativeHibernateSessionFactoryBootstrap() {
+        return false;
+    }
 }

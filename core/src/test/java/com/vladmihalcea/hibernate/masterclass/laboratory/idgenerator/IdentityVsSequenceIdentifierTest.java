@@ -1,12 +1,16 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.idgenerator;
 
-import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
-import org.hibernate.Session;
+import java.util.Properties;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
 import org.hibernate.annotations.GenericGenerator;
+
 import org.junit.Test;
 
-import javax.persistence.*;
-import java.util.Properties;
+import com.vladmihalcea.hibernate.masterclass.laboratory.util.AbstractTest;
 
 public class IdentityVsSequenceIdentifierTest extends AbstractTest {
 
@@ -95,10 +99,9 @@ public class IdentityVsSequenceIdentifierTest extends AbstractTest {
 
         @Id
         @GenericGenerator(name = "sequence", strategy = "sequence", parameters = {
-                @org.hibernate.annotations.Parameter(name = "sequenceName", value = "sequence"),
-                @org.hibernate.annotations.Parameter(name = "allocationSize", value = "1"),
+            @org.hibernate.annotations.Parameter(name = "sequence", value = "sequence")
         })
-        @GeneratedValue(generator = "sequence", strategy=GenerationType.SEQUENCE)
+        @GeneratedValue(generator = "sequence")
         private Long id;
     }
 

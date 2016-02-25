@@ -1,13 +1,15 @@
 package com.vladmihalcea.hibernate.masterclass.laboratory.idgenerator;
 
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.exception.ConstraintViolationException;
-import org.junit.Test;
-
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.exception.ConstraintViolationException;
+
+import org.junit.Ignore;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -26,6 +28,7 @@ public class PooledSequenceIdentifierTest extends AbstractPooledSequenceIdentifi
     }
 
     @Test
+    @Ignore
     public void testPooledOptimizerThrowsException() {
         try {
             insertSequences();
