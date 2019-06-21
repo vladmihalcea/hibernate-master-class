@@ -3,9 +3,15 @@ Hibernate Master Class Tutorial
 
 [Hibernate Master Class](http://vladmihalcea.com/tutorials/hibernate/) is an advance course of one of the most popular JPA implementation
 
-All examples require at least Java 1.8.0_31 or later.
+All examples require at least Java 1.8.0 or later.
 
 The Unit Tests are run against HSQLDB, so no preliminary set-ups are required.
+
+### If you like it, you are going to love my book as well! 
+
+<a href="https://vladmihalcea.com/books/high-performance-java-persistence?utm_source=GitHub&utm_medium=banner&utm_campaign=hibernatemasterclass">
+<img src="https://vladmihalcea.files.wordpress.com/2015/11/hpjp_small.jpg" alt="High-Performance Java Persistence">
+</a>
 
 The Integration Tests require some external configurations:
 
@@ -31,7 +37,7 @@ The Integration Tests require some external configurations:
  >
  > alter system set sessions=1000 scope=spfile;
 
- You need to download the [Orcale JDBC Driver (ojdbc6.jar or ojdbc7_g.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
+ You need to download the [Oracle JDBC Driver (ojdbc6.jar or ojdbc7_g.jar)](http://www.oracle.com/technetwork/database/enterprise-edition/jdbc-112010-090769.html), which is not available in the Maven Central Repository.
  
  You need to install the ojdbc6.jar or ojdbc7_g.jar on your local Maven repository using the following command:
  
